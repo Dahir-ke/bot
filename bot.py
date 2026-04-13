@@ -2,7 +2,7 @@
 # AI FOREX TRADING BOT (QUANT STYLE) - v5.3.6 "MT5 LOGIN + RECONNECT"
 # EURUSD + USDJPY - 12H Retrain + Leakage Fix + MT5 Login
 # ==========================================================
-import MetaTrader5 as mt5
+import mt5linux as mt5
 import pandas as pd
 import numpy as np
 import ta
