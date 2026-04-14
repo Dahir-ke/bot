@@ -3,7 +3,7 @@
 # Compatible with mt5linux on Ubuntu VPS
 # ==========================================================
 
-from mt5linux import MetaTrader5 as mt5
+import MetaTrader5 as mt5   # Official package for Windows
 import pandas as pd
 import numpy as np
 import ta
