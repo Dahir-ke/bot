@@ -1,51 +1,53 @@
 # ==========================================================
-# AI FOREX + COMMODITIES TRADING BOT - v5.3.7 UPDATED
-# Symbols: EURUSD, USDJPY + UKOILm, USOILm, XNGUSDm, AUD* pairs
-# Windows + Official MetaTrader5 (Recommended)
+# AI TRADING BOT v5.3.8 - MULTI SYMBOL (Forex + Commodities)
+# Updated with your latest symbols
 # ==========================================================
 
-import MetaTrader5 as mt5   # Official package - Use this on Windows
+import MetaTrader5 as mt5
 import pandas as pd
 import numpy as np
 import ta
 import time
 import os
 import joblib
-import requests
-import pytz
 import xgboost as xgb
-from datetime import datetime, timedelta, timezone
-from sklearn.calibration import CalibratedClassifierCV
+from datetime import datetime, timezone
 from sklearn.preprocessing import StandardScaler
+from sklearn.calibration import CalibratedClassifierCV
 
 # ==========================================================
 # CONFIGURATION
 # ==========================================================
 MT5_LOGIN = 134084924
 MT5_PASSWORD = "Dahir@2036"
-MT5_SERVER = "ExnessKE-MT5Real9"   # Remove any trailing space
+MT5_SERVER = "ExnessKE-MT5Real9"
 
 SYMBOLS = [
-    "EURUSD", "USDJPY",
-    "UKOILm", "USOILm", "XNGUSDm",
-    "AUDCADm", "AUDCHFm", "AUDJPYm"
-    # Add more AUD pairs here if you want: AUDCZKm, AUDDKKm, etc.
+    "EURUSDm", "USDJPYm", "XAUUSDm",          # Major + Gold
+    "UKOILm", "USOILm", "XNGUSDm",            # Energy
+    "AUDCADm", "AUDCHFm", "AUDDKKm", "AUDJPYm", "AUDMXNm",  # AUD crosses
+    "USDDKKm"                                 # USD crosses
 ]
 
+# Spread limits (in points) - adjusted for each instrument
 SYMBOL_CONFIG = {
-    "EURUSD":  {"MAX_SPREAD_POINTS": 20, "MODEL_FILE": "eurusd_model.pkl"},
-    "USDJPY":  {"MAX_SPREAD_POINTS": 30, "MODEL_FILE": "usdjpy_model.pkl"},
-    "UKOILm":  {"MAX_SPREAD_POINTS": 80, "MODEL_FILE": "ukoilm_model.pkl"},   # Oil has wider spreads
-    "USOILm":  {"MAX_SPREAD_POINTS": 80, "MODEL_FILE": "usoilm_model.pkl"},
-    "XNGUSDm":{"MAX_SPREAD_POINTS": 150,"MODEL_FILE": "xngusdm_model.pkl"},  # Natural gas is very volatile
-    "AUDCADm":{"MAX_SPREAD_POINTS": 40, "MODEL_FILE": "audcadm_model.pkl"},
-    "AUDCHFm":{"MAX_SPREAD_POINTS": 40, "MODEL_FILE": "audchfm_model.pkl"},
-    "AUDJPYm":{"MAX_SPREAD_POINTS": 50, "MODEL_FILE": "audjpym_model.pkl"},
+    "EURUSDm":  {"MAX_SPREAD_POINTS": 20,  "MODEL_FILE": "eurusdm_model.pkl"},
+    "USDJPYm":  {"MAX_SPREAD_POINTS": 30,  "MODEL_FILE": "usdj pym_model.pkl"},
+    "XAUUSDm":  {"MAX_SPREAD_POINTS": 300, "MODEL_FILE": "xauusdm_model.pkl"},   # Gold wider spread
+    "UKOILm":   {"MAX_SPREAD_POINTS": 100, "MODEL_FILE": "ukoilm_model.pkl"},
+    "USOILm":   {"MAX_SPREAD_POINTS": 100, "MODEL_FILE": "usoilm_model.pkl"},
+    "XNGUSDm":  {"MAX_SPREAD_POINTS": 200, "MODEL_FILE": "xngusdm_model.pkl"},   # Natural Gas very volatile
+    "AUDCADm":  {"MAX_SPREAD_POINTS": 40,  "MODEL_FILE": "audcadm_model.pkl"},
+    "AUDCHFm":  {"MAX_SPREAD_POINTS": 40,  "MODEL_FILE": "audchfm_model.pkl"},
+    "AUDDKKm":  {"MAX_SPREAD_POINTS": 50,  "MODEL_FILE": "auddkkm_model.pkl"},
+    "AUDJPYm":  {"MAX_SPREAD_POINTS": 50,  "MODEL_FILE": "audjpym_model.pkl"},
+    "AUDMXNm":  {"MAX_SPREAD_POINTS": 60,  "MODEL_FILE": "audmxnm_model.pkl"},
+    "USDDKKm":  {"MAX_SPREAD_POINTS": 40,  "MODEL_FILE": "usddkkm_model.pkl"},
 }
 
 TIMEFRAME = mt5.TIMEFRAME_M5
-BARS = 1500                    # Reduced for faster testing (increase later)
-RISK_PERCENT = 0.005
+BARS = 1200                    # Good balance for speed + enough data
+RISK_PERCENT = 0.005           # 0.5% risk per trade (conservative)
 RISK_REWARD = 2.0
 ATR_MULTIPLIER = 1.5
 CONFIDENCE_THRESHOLD = 0.65
@@ -53,18 +55,16 @@ COOLDOWN_MINUTES = 30
 MAGIC_NUMBER = 20240601
 
 # ==========================================================
-# GLOBAL STATE (simplified)
+# GLOBAL STATE
 # ==========================================================
 per_symbol_state = {sym: {'LAST_TRADE_TIME': None} for sym in SYMBOLS}
-
-def save_per_symbol_state(sym):
-    pass  # You can expand this later with joblib if needed
 
 # ==========================================================
 # MT5 LOGIN
 # ==========================================================
 def mt5_login():
     print(f"🔐 Logging in → Account: {MT5_LOGIN} | Server: {MT5_SERVER}")
+    
     if not mt5.initialize(login=MT5_LOGIN, password=MT5_PASSWORD, server=MT5_SERVER):
         print(f"❌ Login failed: {mt5.last_error()}")
         return False
@@ -75,51 +75,50 @@ def mt5_login():
     return True
 
 # ==========================================================
-# IMPROVED DATA FETCHING
+# DATA FETCHING (Improved with retries)
 # ==========================================================
 def get_data(symbol):
     print(f"📥 Loading data for {symbol}...")
-    mt5.symbol_select(symbol, True)   # Force select + trigger download
+    mt5.symbol_select(symbol, True)
 
     for attempt in range(10):
         rates = mt5.copy_rates_from_pos(symbol, TIMEFRAME, 0, BARS)
-        if rates is not None and len(rates) >= 200:
+        if rates is not None and len(rates) >= 250:
             df = pd.DataFrame(rates)
             df['time'] = pd.to_datetime(df['time'], unit='s')
             print(f"✅ {symbol}: {len(df)} bars loaded")
             return df
+        
+        time.sleep(3)
 
-        print(f"   Attempt {attempt+1}: waiting for data...")
-        time.sleep(4)
-
-    # Final fallback
-    rates = mt5.copy_rates_from_pos(symbol, TIMEFRAME, 0, 500)
+    # Fallback
+    rates = mt5.copy_rates_from_pos(symbol, TIMEFRAME, 0, 600)
     if rates is not None and len(rates) > 100:
         df = pd.DataFrame(rates)
         df['time'] = pd.to_datetime(df['time'], unit='s')
         return df
 
-    raise Exception(f"Failed to load enough data for {symbol}. Open the chart manually in MT5.")
+    raise Exception(f"Could not load enough data for {symbol}. Please open {symbol} M5 chart in MT5.")
 
 def add_features(df):
     df['ema20'] = ta.trend.ema_indicator(df['close'], 20)
     df['ema50'] = ta.trend.ema_indicator(df['close'], 50)
-    df['ema200'] = ta.trend.ema_indicator(df['close'], 200)
-    df['rsi'] = ta.momentum.rsi(df['close'], 14)
-    df['atr'] = ta.volatility.average_true_range(df['high'], df['low'], df['close'], 14)
+    df['rsi']   = ta.momentum.rsi(df['close'], 14)
+    df['atr']   = ta.volatility.average_true_range(df['high'], df['low'], df['close'], 14)
     df['momentum'] = df['close'].pct_change(5)
     df.dropna(inplace=True)
     return df
 
 # ==========================================================
-# MODEL (simple version - you can expand)
+# MODEL
 # ==========================================================
 def load_or_train_model(df, symbol):
     model_file = SYMBOL_CONFIG[symbol]["MODEL_FILE"]
+    
     if os.path.exists(model_file):
         try:
             model, scaler, features = joblib.load(model_file)
-            print(f"✅ Loaded model for {symbol}")
+            print(f"✅ Loaded existing model for {symbol}")
             return model, scaler, features
         except:
             pass
@@ -140,10 +139,11 @@ def load_or_train_model(df, symbol):
     model.fit(X_scaled, y)
 
     joblib.dump((model, scaler, feature_cols), model_file)
+    print(f"✅ New model trained and saved for {symbol}")
     return model, scaler, feature_cols
 
 # ==========================================================
-# SIGNAL + TRADE EXECUTION (simplified & safe)
+# SIGNAL & TRADE
 # ==========================================================
 def generate_signal(df, model, scaler, features, symbol):
     latest = scaler.transform(df[features].iloc[-1:])
@@ -161,10 +161,11 @@ def execute_trade(signal, atr, prob, symbol):
     if not tick:
         return
 
-    config = SYMBOL_CONFIG[symbol]
-    spread = (tick.ask - tick.bid) / mt5.symbol_info(symbol).point
-    if spread > config["MAX_SPREAD_POINTS"]:
-        print(f"⚠️ Spread too high for {symbol} ({spread:.1f})")
+    info = mt5.symbol_info(symbol)
+    spread_points = (tick.ask - tick.bid) / info.point
+
+    if spread_points > SYMBOL_CONFIG[symbol]["MAX_SPREAD_POINTS"]:
+        print(f"⚠️ High spread on {symbol}: {spread_points:.1f} points")
         return
 
     if signal == "BUY":
@@ -178,7 +179,7 @@ def execute_trade(signal, atr, prob, symbol):
         tp = price - ATR_MULTIPLIER * atr * RISK_REWARD
         order_type = mt5.ORDER_TYPE_SELL
 
-    lot = 0.01   # Safe micro lot - change later with proper risk calculation
+    lot = 0.01   # Start small and safe (especially with $7 balance)
 
     request = {
         "action": mt5.TRADE_ACTION_DEAL,
@@ -186,35 +187,37 @@ def execute_trade(signal, atr, prob, symbol):
         "volume": lot,
         "type": order_type,
         "price": price,
-        "sl": sl,
-        "tp": tp,
+        "sl": round(sl, 5),
+        "tp": round(tp, 5),
         "deviation": 30,
         "magic": MAGIC_NUMBER,
-        "comment": "AI_BOT_v5.3.7",
+        "comment": "AI_BOT_5.3.8",
         "type_time": mt5.ORDER_TIME_GTC,
         "type_filling": mt5.ORDER_FILLING_IOC,
     }
 
     result = mt5.order_send(request)
-    if result and result.retcode == 10009:   # TRADE_RETCODE_DONE
-        print(f"✅ {signal} {symbol} | Lot {lot} | Prob {prob:.1%}")
+    if result and result.retcode == 10009:   # Order executed successfully
+        print(f"✅ {signal} {symbol} | Lot: {lot} | Prob: {prob:.1%} | Spread: {spread_points:.1f}")
         per_symbol_state[symbol]['LAST_TRADE_TIME'] = datetime.now(timezone.utc)
     else:
-        print(f"❌ Failed {symbol}: {result.comment if result else 'No result'}")
+        print(f"❌ {symbol} trade failed: {result.comment if result else 'Unknown error'}")
 
 # ==========================================================
-# MAIN LOOP
+# MAIN
 # ==========================================================
 def run_bot():
     if not mt5_login():
-        quit()
+        print("❌ Could not login to MT5")
+        return
 
-    print("🔄 Pre-loading all symbols...")
+    print(f"\n🚀 Starting AI Bot with {len(SYMBOLS)} symbols...")
+    print("🔄 Pre-loading all symbols (this may take 10-20 seconds)...\n")
+
     for sym in SYMBOLS:
         mt5.symbol_select(sym, True)
-    time.sleep(8)
 
-    print("🚀 AI Trading Bot Started with", len(SYMBOLS), "symbols")
+    time.sleep(10)   # Give MT5 time to load history
 
     models = {}
     for sym in SYMBOLS:
@@ -223,7 +226,9 @@ def run_bot():
             df = add_features(df)
             models[sym] = load_or_train_model(df, sym)
         except Exception as e:
-            print(f"⚠️ Skipping {sym}: {e}")
+            print(f"⚠️ Could not prepare {sym}: {e}")
+
+    print("\n✅ Bot is now running...\n")
 
     while True:
         try:
@@ -233,18 +238,18 @@ def run_bot():
 
                 df = get_data(symbol)
                 df = add_features(df)
-                model, scaler, features = models[symbol]
 
+                model, scaler, features = models[symbol]
                 signal, prob, atr = generate_signal(df, model, scaler, features, symbol)
 
                 if signal:
                     execute_trade(signal, atr, prob, symbol)
 
-            time.sleep(60)
+            time.sleep(60)   # Check every minute
 
         except Exception as e:
-            print(f"⚠️ Error: {e}")
-            time.sleep(10)
+            print(f"⚠️ Main loop error: {e}")
+            time.sleep(15)
 
 if __name__ == "__main__":
     run_bot()
