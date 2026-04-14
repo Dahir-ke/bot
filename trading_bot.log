@@ -333,3 +333,22 @@
 2026-04-14 11:20:46 [INFO] \u26a0\ufe0f High spread on USDDKKm - skipping
 2026-04-14 11:21:46 [WARNING] High drawdown (84.6%) - Pausing 30 min
 2026-04-14 11:25:11 [INFO] Shutdown signal received. Closing MT5...
+2026-04-14 11:25:15 [INFO] === SAFE BOT v6.3 STARTED ===
+2026-04-14 11:25:16 [INFO] Bot is now running in SAFE mode...
+2026-04-14 11:25:16 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:25:26 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:25:36 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:25:46 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:25:56 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:26:06 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:26:16 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:26:26 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:26:36 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:26:46 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:26:56 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:27:06 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:27:16 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:27:26 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:27:36 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:27:46 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
+2026-04-14 11:27:50 [INFO] Bot shutting down...

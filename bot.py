@@ -1,6 +1,6 @@
 # ==========================================================
-# SAFE AI TRADING BOT v6.3.1 
-# Fixed datetime error + Strict One Trade + Daily Loss Protection
+# SAFE AI TRADING BOT v6.4.0 
+# Fixed Risk Management + One Trade Per Symbol + Daily Protection
 # ==========================================================
 
 import platform
@@ -10,7 +10,7 @@ import os
 import joblib
 import signal
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import pandas as pd
 import numpy as np
 import ta
@@ -37,12 +37,14 @@ else:
     mt5 = MetaTrader5()
     logging.info("Running on Linux with mt5linux")
 
-# ====================== CONSTANTS ======================
-TIMEFRAME_M5 = 5
-ORDER_TYPE_BUY = 0
-ORDER_TYPE_SELL = 1
+# ====================== MT5 CONSTANTS ======================
+TIMEFRAME_M5      = 5
+ORDER_TYPE_BUY    = 0
+ORDER_TYPE_SELL   = 1
 TRADE_ACTION_DEAL = 1
-MAGIC_NUMBER = 20240601
+ORDER_TIME_GTC    = 0
+ORDER_FILLING_IOC = 1
+MAGIC_NUMBER      = 20240601
 
 # ====================== CONFIG ======================
 MT5_LOGIN = 435112321
@@ -55,14 +57,22 @@ SYMBOLS = ["EURUSDm", "USDJPYm", "XAUUSDm", "UKOILm", "USOILm", "XNGUSDm",
 SYMBOL_CONFIG = {sym: {"MAX_SPREAD": 120} for sym in SYMBOLS}
 
 MAX_RISK_PERCENT = 0.005        # 0.5% risk per trade
-CONFIDENCE_THRESHOLD = 0.78     # Strict
+CONFIDENCE_THRESHOLD = 0.78
 COOLDOWN_MINUTES = 30
 MAX_DAILY_LOSS_PERCENT = 3.0
 BARS = 1200
 
-# Use timezone-aware datetime
+# Per-symbol maximum lot size (to further protect against extreme volatility)
+SYMBOL_MAX_LOT = {
+    "XAUUSDm": 0.03,   # Gold limited to 0.03 lot
+    "UKOILm": 0.05,
+    "USOILm": 0.05,
+    # All others default to 0.10 (see calculate_lot)
+}
+
 last_trade_time = {sym: datetime.min.replace(tzinfo=timezone.utc) for sym in SYMBOLS}
 daily_start_equity = None
+last_date_reset = None
 
 # ====================== SHUTDOWN ======================
 def shutdown_handler(sig, frame):
@@ -72,7 +82,7 @@ def shutdown_handler(sig, frame):
 
 signal.signal(signal.SIGINT, shutdown_handler)
 
-# ====================== CORE FUNCTIONS ======================
+# ====================== HELPERS ======================
 def has_open_position(symbol):
     positions = mt5.positions_get(symbol=symbol)
     return bool(positions and any(p.magic == MAGIC_NUMBER for p in positions or []))
@@ -83,11 +93,24 @@ def is_on_cooldown(symbol):
 def get_daily_loss():
     global daily_start_equity
     account = mt5.account_info()
+    if not account:
+        return 0.0
     if daily_start_equity is None:
         daily_start_equity = account.equity
         return 0.0
     loss_pct = (daily_start_equity - account.equity) / daily_start_equity * 100
     return loss_pct
+
+def reset_daily_equity_if_needed():
+    global daily_start_equity, last_date_reset
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    if last_date_reset != today:
+        account = mt5.account_info()
+        if account:
+            daily_start_equity = account.equity
+            last_date_reset = today
+            logging.info(f"Daily equity reset: {daily_start_equity:.2f}")
 
 def get_data(symbol):
     mt5.symbol_select(symbol, True)
@@ -98,7 +121,7 @@ def get_data(symbol):
             df['time'] = pd.to_datetime(df['time'], unit='s')
             return df
         time.sleep(2)
-    logging.warning(f"Could not load enough data for {symbol}")
+    logging.warning(f"Could not load data for {symbol}")
     return None
 
 def add_features(df):
@@ -113,7 +136,7 @@ def add_features(df):
     return df
 
 def load_or_train_model(df, symbol):
-    mf = f"{symbol.lower()}_safe_v63.pkl"
+    mf = f"{symbol.lower()}_safe_v64.pkl"
     if os.path.exists(mf):
         try:
             model, scaler, feats = joblib.load(mf)
@@ -135,19 +158,45 @@ def load_or_train_model(df, symbol):
     joblib.dump((model, scaler, feats), mf)
     return model, scaler, feats
 
+def calculate_lot(symbol, atr, equity):
+    """Return lot size that risks exactly MAX_RISK_PERCENT of equity."""
+    symbol_info = mt5.symbol_info(symbol)
+    if not symbol_info:
+        return 0.01
+    # point value in account currency per point for 1 lot
+    point_value = symbol_info.trade_tick_value
+    # stop distance in points (same unit as tick value)
+    stop_distance = 1.8 * atr
+    if stop_distance <= 0 or point_value <= 0:
+        return 0.01
+
+    risk_amount = equity * MAX_RISK_PERCENT
+    lot = risk_amount / (stop_distance * point_value)
+
+    # Apply min/max limits
+    min_lot = max(symbol_info.volume_min, 0.01)
+    max_lot = SYMBOL_MAX_LOT.get(symbol, 0.10)
+    lot = max(min_lot, min(lot, max_lot))
+    # Round to 2 decimals (broker lot step)
+    lot = round(lot, 2)
+    return lot
+
 def execute_trade(signal, atr, prob, symbol):
     if has_open_position(symbol) or is_on_cooldown(symbol):
         return
 
     tick = mt5.symbol_info_tick(symbol)
     info = mt5.symbol_info(symbol)
-    if not tick or not info:
+    account = mt5.account_info()
+    if not tick or not info or not account:
         return
 
     spread = (tick.ask - tick.bid) / info.point
     if spread > SYMBOL_CONFIG[symbol]["MAX_SPREAD"]:
-        logging.info(f"High spread on {symbol} ({spread:.1f}) - skipping")
+        logging.info(f"High spread on {symbol} - skipping")
         return
+
+    lot = calculate_lot(symbol, atr, account.equity)
 
     if signal == "BUY":
         price = tick.ask
@@ -160,8 +209,6 @@ def execute_trade(signal, atr, prob, symbol):
         tp = price - 1.8 * atr * 2.0
         order_type = ORDER_TYPE_SELL
 
-    lot = 0.01   # Fixed small lot for safety
-
     request = {
         "action": TRADE_ACTION_DEAL,
         "symbol": symbol,
@@ -172,21 +219,23 @@ def execute_trade(signal, atr, prob, symbol):
         "tp": tp,
         "deviation": 30,
         "magic": MAGIC_NUMBER,
-        "comment": "SAFE_v6.3",
+        "comment": "SAFE_v6.4",
         "type_time": ORDER_TIME_GTC,
         "type_filling": ORDER_FILLING_IOC,
     }
 
     result = mt5.order_send(request)
     if result and result.retcode == 10009:
-        logging.info(f"✅ TRADE OPENED → {signal} {symbol} | Prob {prob:.1%} | Lot {lot}")
+        risk_usd = lot * (1.8 * atr) * info.trade_tick_value
+        logging.info(f"✅ TRADE OPENED → {signal} {symbol} | Lot {lot} | Risk ${risk_usd:.2f} ({MAX_RISK_PERCENT*100:.1f}% of equity)")
         last_trade_time[symbol] = datetime.now(timezone.utc)
     else:
-        logging.error(f"❌ Trade failed on {symbol}: {result.comment if result else 'Unknown'}")
+        logging.error(f"Trade failed on {symbol}: {result.comment if result else 'Unknown'} (retcode={result.retcode if result else 'None'})")
 
-# ====================== MAIN LOOP ======================
+# ====================== MAIN ======================
 def run_bot():
-    logging.info("=== SAFE BOT v6.3.1 STARTED ===")
+    global daily_start_equity, last_date_reset
+    logging.info("=== SAFE BOT v6.4.0 STARTED ===")
 
     if not mt5.initialize(login=MT5_LOGIN, password=MT5_PASSWORD, server=MT5_SERVER):
         logging.error(f"MT5 login failed: {mt5.last_error()}")
@@ -205,13 +254,16 @@ def run_bot():
         except Exception as e:
             logging.error(f"Failed to prepare {sym}: {e}")
 
-    logging.info("Bot running in SAFE mode (One trade per symbol + cooldown + daily limit)\n")
+    logging.info("Bot running in SAFE mode with dynamic risk sizing...\n")
 
     while True:
         try:
+            # Reset daily equity at start of new UTC day
+            reset_daily_equity_if_needed()
+
             daily_loss = get_daily_loss()
             if daily_loss > MAX_DAILY_LOSS_PERCENT:
-                logging.warning(f"DAILY LOSS LIMIT HIT ({daily_loss:.1f}%) → Pausing for 1 hour")
+                logging.warning(f"DAILY LOSS LIMIT HIT ({daily_loss:.1f}%) → Pausing 1 hour")
                 time.sleep(3600)
                 continue
 
