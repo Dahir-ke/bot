@@ -1,6 +1,6 @@
 # ==========================================================
-# STRICT SAFE BOT v6.3 - Fixed Multiple Losing Trades
-# One Trade Per Symbol + Cooldown + Daily Loss Protection
+# SAFE AI TRADING BOT v6.3.1 
+# Fixed datetime error + Strict One Trade + Daily Loss Protection
 # ==========================================================
 
 import platform
@@ -31,16 +31,17 @@ logging.getLogger().addHandler(console)
 # ====================== CROSS-PLATFORM MT5 ======================
 if platform.system() == "Windows":
     import MetaTrader5 as mt5
+    logging.info("Running on Windows")
 else:
     from mt5linux import MetaTrader5
     mt5 = MetaTrader5()
+    logging.info("Running on Linux with mt5linux")
 
 # ====================== CONSTANTS ======================
 TIMEFRAME_M5 = 5
 ORDER_TYPE_BUY = 0
 ORDER_TYPE_SELL = 1
 TRADE_ACTION_DEAL = 1
-TRADE_ACTION_SLTP = 6
 MAGIC_NUMBER = 20240601
 
 # ====================== CONFIG ======================
@@ -51,15 +52,16 @@ MT5_SERVER = "ExnessKE-MT5Trial9"
 SYMBOLS = ["EURUSDm", "USDJPYm", "XAUUSDm", "UKOILm", "USOILm", "XNGUSDm",
            "AUDCADm", "AUDCHFm", "AUDJPYm"]
 
-SYMBOL_CONFIG = {sym: {"MAX_SPREAD": 100} for sym in SYMBOLS}
+SYMBOL_CONFIG = {sym: {"MAX_SPREAD": 120} for sym in SYMBOLS}
 
-MAX_RISK_PERCENT = 0.005      # Reduced to 0.5%
-CONFIDENCE_THRESHOLD = 0.78   # Much stricter
+MAX_RISK_PERCENT = 0.005        # 0.5% risk per trade
+CONFIDENCE_THRESHOLD = 0.78     # Strict
 COOLDOWN_MINUTES = 30
-MAX_DAILY_LOSS_PERCENT = 3.0  # Stop if daily loss > 3%
+MAX_DAILY_LOSS_PERCENT = 3.0
 BARS = 1200
 
-last_trade_time = {sym: datetime.min for sym in SYMBOLS}
+# Use timezone-aware datetime
+last_trade_time = {sym: datetime.min.replace(tzinfo=timezone.utc) for sym in SYMBOLS}
 daily_start_equity = None
 
 # ====================== SHUTDOWN ======================
@@ -70,7 +72,7 @@ def shutdown_handler(sig, frame):
 
 signal.signal(signal.SIGINT, shutdown_handler)
 
-# ====================== HELPERS ======================
+# ====================== CORE FUNCTIONS ======================
 def has_open_position(symbol):
     positions = mt5.positions_get(symbol=symbol)
     return bool(positions and any(p.magic == MAGIC_NUMBER for p in positions or []))
@@ -84,8 +86,8 @@ def get_daily_loss():
     if daily_start_equity is None:
         daily_start_equity = account.equity
         return 0.0
-    loss = (daily_start_equity - account.equity) / daily_start_equity * 100
-    return loss
+    loss_pct = (daily_start_equity - account.equity) / daily_start_equity * 100
+    return loss_pct
 
 def get_data(symbol):
     mt5.symbol_select(symbol, True)
@@ -96,7 +98,7 @@ def get_data(symbol):
             df['time'] = pd.to_datetime(df['time'], unit='s')
             return df
         time.sleep(2)
-    logging.error(f"Failed to get data for {symbol}")
+    logging.warning(f"Could not load enough data for {symbol}")
     return None
 
 def add_features(df):
@@ -111,17 +113,19 @@ def add_features(df):
     return df
 
 def load_or_train_model(df, symbol):
-    mf = f"{symbol.lower()}_safe_v6.pkl"
+    mf = f"{symbol.lower()}_safe_v63.pkl"
     if os.path.exists(mf):
         try:
-            return joblib.load(mf)
+            model, scaler, feats = joblib.load(mf)
+            logging.info(f"Model loaded for {symbol}")
+            return model, scaler, feats
         except:
             pass
-    # Train simple model
+    logging.info(f"Training new model for {symbol}...")
     df = df.copy()
     df['target'] = (df['close'].shift(-5) > df['close']).astype(int)
     df.dropna(inplace=True)
-    feats = ['ema20','ema50','rsi','atr','adx']
+    feats = ['ema20', 'ema50', 'rsi', 'atr', 'adx']
     X = df[feats]
     y = df['target']
     scaler = StandardScaler()
@@ -142,20 +146,21 @@ def execute_trade(signal, atr, prob, symbol):
 
     spread = (tick.ask - tick.bid) / info.point
     if spread > SYMBOL_CONFIG[symbol]["MAX_SPREAD"]:
+        logging.info(f"High spread on {symbol} ({spread:.1f}) - skipping")
         return
 
     if signal == "BUY":
         price = tick.ask
-        sl = price - ATR_MULTIPLIER_SL * atr
-        tp = price + ATR_MULTIPLIER_SL * atr * RISK_REWARD
+        sl = price - 1.8 * atr
+        tp = price + 1.8 * atr * 2.0
         order_type = ORDER_TYPE_BUY
     else:
         price = tick.bid
-        sl = price + ATR_MULTIPLIER_SL * atr
-        tp = price - ATR_MULTIPLIER_SL * atr * RISK_REWARD
+        sl = price + 1.8 * atr
+        tp = price - 1.8 * atr * 2.0
         order_type = ORDER_TYPE_SELL
 
-    lot = 0.01   # Fixed small lot for safety with low balance
+    lot = 0.01   # Fixed small lot for safety
 
     request = {
         "action": TRADE_ACTION_DEAL,
@@ -174,17 +179,17 @@ def execute_trade(signal, atr, prob, symbol):
 
     result = mt5.order_send(request)
     if result and result.retcode == 10009:
-        logging.info(f"✅ TRADE OPENED → {signal} {symbol} | Prob {prob:.1%}")
+        logging.info(f"✅ TRADE OPENED → {signal} {symbol} | Prob {prob:.1%} | Lot {lot}")
         last_trade_time[symbol] = datetime.now(timezone.utc)
     else:
-        logging.error(f"Trade failed {symbol}: {result.comment if result else 'Unknown'}")
+        logging.error(f"❌ Trade failed on {symbol}: {result.comment if result else 'Unknown'}")
 
-# ====================== MAIN ======================
+# ====================== MAIN LOOP ======================
 def run_bot():
-    logging.info("=== SAFE BOT v6.3 STARTED ===")
+    logging.info("=== SAFE BOT v6.3.1 STARTED ===")
 
     if not mt5.initialize(login=MT5_LOGIN, password=MT5_PASSWORD, server=MT5_SERVER):
-        logging.error("MT5 login failed")
+        logging.error(f"MT5 login failed: {mt5.last_error()}")
         return
 
     for s in SYMBOLS:
@@ -192,18 +197,21 @@ def run_bot():
 
     models = {}
     for sym in SYMBOLS:
-        df = get_data(sym)
-        if df is not None:
-            df = add_features(df)
-            models[sym] = load_or_train_model(df, sym)
+        try:
+            df = get_data(sym)
+            if df is not None:
+                df = add_features(df)
+                models[sym] = load_or_train_model(df, sym)
+        except Exception as e:
+            logging.error(f"Failed to prepare {sym}: {e}")
 
-    logging.info("Bot is now running in SAFE mode...")
+    logging.info("Bot running in SAFE mode (One trade per symbol + cooldown + daily limit)\n")
 
     while True:
         try:
             daily_loss = get_daily_loss()
             if daily_loss > MAX_DAILY_LOSS_PERCENT:
-                logging.warning(f"DAILY LOSS LIMIT HIT ({daily_loss:.1f}%) - Bot paused for 1 hour")
+                logging.warning(f"DAILY LOSS LIMIT HIT ({daily_loss:.1f}%) → Pausing for 1 hour")
                 time.sleep(3600)
                 continue
 
@@ -235,8 +243,8 @@ def run_bot():
             time.sleep(60)
 
         except Exception as e:
-            logging.error(f"Error in main loop: {e}")
-            time.sleep(10)
+            logging.error(f"Main loop error: {e}")
+            time.sleep(15)
 
 if __name__ == "__main__":
     run_bot()

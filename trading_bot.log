@@ -332,3 +332,4 @@
 2026-04-14 11:20:46 [INFO] \u2705 USDDKKm: 1500 bars loaded
 2026-04-14 11:20:46 [INFO] \u26a0\ufe0f High spread on USDDKKm - skipping
 2026-04-14 11:21:46 [WARNING] High drawdown (84.6%) - Pausing 30 min
+2026-04-14 11:25:11 [INFO] Shutdown signal received. Closing MT5...
