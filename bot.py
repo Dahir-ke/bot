@@ -49,9 +49,9 @@ ORDER_TIME_GTC = 0
 ORDER_FILLING_IOC = 1
 
 # ====================== CONFIG ======================
-MT5_LOGIN = 134084924
+MT5_LOGIN = 435112321
 MT5_PASSWORD = "Dahir@2036"
-MT5_SERVER = "ExnessKE-MT5Real9"
+MT5_SERVER = "ExnessKE-MT5Trial9"
 
 SYMBOLS = [
     "EURUSDm", "USDJPYm", "XAUUSDm", "UKOILm", "USOILm", "XNGUSDm",
