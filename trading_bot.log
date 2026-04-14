@@ -4,3 +4,331 @@
 2026-04-14 11:10:55 [INFO] Running on Windows - using official MetaTrader5 package
 2026-04-14 11:10:55 [INFO] === NEXT-LEVEL BOT v6.2 STARTED ===
 2026-04-14 11:10:55 [INFO] Bot main loop started
+2026-04-14 11:14:15 [INFO] Running on Windows - using official MetaTrader5
+2026-04-14 11:14:15 [INFO] === BOT v6.2 STARTED ===
+2026-04-14 11:14:24 [INFO] Loading data for EURUSDm
+2026-04-14 11:14:24 [INFO] \u2705 EURUSDm: 1500 bars loaded
+2026-04-14 11:14:24 [INFO] Training new model for EURUSDm
+2026-04-14 11:14:25 [INFO] Loading data for USDJPYm
+2026-04-14 11:14:25 [INFO] \u2705 USDJPYm: 1500 bars loaded
+2026-04-14 11:14:25 [INFO] Training new model for USDJPYm
+2026-04-14 11:14:25 [INFO] Loading data for XAUUSDm
+2026-04-14 11:14:25 [INFO] \u2705 XAUUSDm: 1500 bars loaded
+2026-04-14 11:14:25 [INFO] Training new model for XAUUSDm
+2026-04-14 11:14:26 [INFO] Loading data for UKOILm
+2026-04-14 11:14:26 [INFO] \u2705 UKOILm: 1500 bars loaded
+2026-04-14 11:14:26 [INFO] Training new model for UKOILm
+2026-04-14 11:14:26 [INFO] Loading data for USOILm
+2026-04-14 11:14:26 [INFO] \u2705 USOILm: 1500 bars loaded
+2026-04-14 11:14:27 [INFO] Training new model for USOILm
+2026-04-14 11:14:27 [INFO] Loading data for XNGUSDm
+2026-04-14 11:14:27 [INFO] \u2705 XNGUSDm: 1500 bars loaded
+2026-04-14 11:14:27 [INFO] Training new model for XNGUSDm
+2026-04-14 11:14:28 [INFO] Loading data for AUDCADm
+2026-04-14 11:14:28 [INFO] \u2705 AUDCADm: 1500 bars loaded
+2026-04-14 11:14:28 [INFO] Training new model for AUDCADm
+2026-04-14 11:14:28 [INFO] Loading data for AUDCHFm
+2026-04-14 11:14:28 [INFO] \u2705 AUDCHFm: 1500 bars loaded
+2026-04-14 11:14:28 [INFO] Training new model for AUDCHFm
+2026-04-14 11:14:29 [INFO] Loading data for AUDDKKm
+2026-04-14 11:14:29 [INFO] \u2705 AUDDKKm: 1500 bars loaded
+2026-04-14 11:14:29 [INFO] Training new model for AUDDKKm
+2026-04-14 11:14:29 [INFO] Loading data for AUDJPYm
+2026-04-14 11:14:29 [INFO] \u2705 AUDJPYm: 1500 bars loaded
+2026-04-14 11:14:30 [INFO] Training new model for AUDJPYm
+2026-04-14 11:14:30 [INFO] Loading data for AUDMXNm
+2026-04-14 11:14:30 [INFO] \u2705 AUDMXNm: 1500 bars loaded
+2026-04-14 11:14:30 [INFO] Training new model for AUDMXNm
+2026-04-14 11:14:31 [INFO] Loading data for USDDKKm
+2026-04-14 11:14:31 [INFO] \u2705 USDDKKm: 1500 bars loaded
+2026-04-14 11:14:31 [INFO] Training new model for USDDKKm
+2026-04-14 11:14:31 [INFO] Bot main loop started - Monitoring symbols...
+
+2026-04-14 11:14:31 [INFO] Loading data for EURUSDm
+2026-04-14 11:14:31 [INFO] \u2705 EURUSDm: 1500 bars loaded
+2026-04-14 11:14:31 [ERROR] \u274c Trade failed on EURUSDm: AutoTrading disabled by server
+2026-04-14 11:14:31 [INFO] Loading data for USDJPYm
+2026-04-14 11:14:31 [INFO] \u2705 USDJPYm: 1500 bars loaded
+2026-04-14 11:14:31 [INFO] Loading data for XAUUSDm
+2026-04-14 11:14:31 [INFO] \u2705 XAUUSDm: 1500 bars loaded
+2026-04-14 11:14:31 [ERROR] \u274c Trade failed on XAUUSDm: AutoTrading disabled by server
+2026-04-14 11:14:31 [INFO] Loading data for UKOILm
+2026-04-14 11:14:31 [INFO] \u2705 UKOILm: 1500 bars loaded
+2026-04-14 11:14:31 [ERROR] \u274c Trade failed on UKOILm: AutoTrading disabled by server
+2026-04-14 11:14:31 [INFO] Loading data for USOILm
+2026-04-14 11:14:32 [INFO] \u2705 USOILm: 1500 bars loaded
+2026-04-14 11:14:32 [ERROR] \u274c Trade failed on USOILm: AutoTrading disabled by server
+2026-04-14 11:14:32 [INFO] Loading data for XNGUSDm
+2026-04-14 11:14:32 [INFO] \u2705 XNGUSDm: 1500 bars loaded
+2026-04-14 11:14:32 [ERROR] \u274c Trade failed on XNGUSDm: Invalid stops
+2026-04-14 11:14:32 [INFO] Loading data for AUDCADm
+2026-04-14 11:14:32 [INFO] \u2705 AUDCADm: 1500 bars loaded
+2026-04-14 11:14:32 [INFO] Loading data for AUDCHFm
+2026-04-14 11:14:32 [INFO] \u2705 AUDCHFm: 1500 bars loaded
+2026-04-14 11:14:32 [ERROR] Main loop error: float division by zero
+2026-04-14 11:14:47 [INFO] Loading data for EURUSDm
+2026-04-14 11:14:47 [INFO] \u2705 EURUSDm: 1500 bars loaded
+2026-04-14 11:14:47 [ERROR] \u274c Trade failed on EURUSDm: AutoTrading disabled by server
+2026-04-14 11:14:47 [INFO] Loading data for USDJPYm
+2026-04-14 11:14:47 [INFO] \u2705 USDJPYm: 1500 bars loaded
+2026-04-14 11:14:47 [INFO] Loading data for XAUUSDm
+2026-04-14 11:14:47 [INFO] \u2705 XAUUSDm: 1500 bars loaded
+2026-04-14 11:14:47 [ERROR] \u274c Trade failed on XAUUSDm: AutoTrading disabled by server
+2026-04-14 11:14:47 [INFO] Loading data for UKOILm
+2026-04-14 11:14:47 [INFO] \u2705 UKOILm: 1500 bars loaded
+2026-04-14 11:14:47 [INFO] Loading data for USOILm
+2026-04-14 11:14:47 [INFO] \u2705 USOILm: 1500 bars loaded
+2026-04-14 11:14:47 [INFO] Loading data for XNGUSDm
+2026-04-14 11:14:47 [INFO] \u2705 XNGUSDm: 1500 bars loaded
+2026-04-14 11:14:47 [ERROR] \u274c Trade failed on XNGUSDm: Invalid stops
+2026-04-14 11:14:47 [INFO] Loading data for AUDCADm
+2026-04-14 11:14:47 [INFO] \u2705 AUDCADm: 1500 bars loaded
+2026-04-14 11:14:47 [INFO] Loading data for AUDCHFm
+2026-04-14 11:14:47 [INFO] \u2705 AUDCHFm: 1500 bars loaded
+2026-04-14 11:14:47 [ERROR] \u274c Trade failed on AUDCHFm: AutoTrading disabled by server
+2026-04-14 11:14:47 [INFO] Loading data for AUDDKKm
+2026-04-14 11:14:47 [INFO] \u2705 AUDDKKm: 1500 bars loaded
+2026-04-14 11:14:47 [INFO] Loading data for AUDJPYm
+2026-04-14 11:14:47 [INFO] \u2705 AUDJPYm: 1500 bars loaded
+2026-04-14 11:14:47 [ERROR] \u274c Trade failed on AUDJPYm: AutoTrading disabled by server
+2026-04-14 11:14:47 [INFO] Loading data for AUDMXNm
+2026-04-14 11:14:47 [INFO] \u2705 AUDMXNm: 1500 bars loaded
+2026-04-14 11:14:47 [INFO] \u26a0\ufe0f High spread on AUDMXNm - skipping
+2026-04-14 11:14:47 [INFO] Loading data for USDDKKm
+2026-04-14 11:14:47 [INFO] \u2705 USDDKKm: 1500 bars loaded
+2026-04-14 11:14:47 [INFO] \u26a0\ufe0f High spread on USDDKKm - skipping
+2026-04-14 11:15:47 [INFO] Loading data for EURUSDm
+2026-04-14 11:15:48 [INFO] \u2705 EURUSDm: 1500 bars loaded
+2026-04-14 11:15:48 [ERROR] \u274c Trade failed on EURUSDm: No money
+2026-04-14 11:15:48 [INFO] Loading data for USDJPYm
+2026-04-14 11:15:48 [INFO] \u2705 USDJPYm: 1500 bars loaded
+2026-04-14 11:15:48 [INFO] Loading data for XAUUSDm
+2026-04-14 11:15:48 [INFO] \u2705 XAUUSDm: 1500 bars loaded
+2026-04-14 11:15:48 [ERROR] \u274c Trade failed on XAUUSDm: No money
+2026-04-14 11:15:48 [INFO] Loading data for XNGUSDm
+2026-04-14 11:15:48 [INFO] \u2705 XNGUSDm: 1500 bars loaded
+2026-04-14 11:15:48 [ERROR] \u274c Trade failed on XNGUSDm: Invalid stops
+2026-04-14 11:15:48 [INFO] Loading data for AUDDKKm
+2026-04-14 11:15:48 [INFO] \u2705 AUDDKKm: 1500 bars loaded
+2026-04-14 11:15:48 [INFO] Loading data for AUDJPYm
+2026-04-14 11:15:48 [INFO] \u2705 AUDJPYm: 1500 bars loaded
+2026-04-14 11:15:48 [ERROR] \u274c Trade failed on AUDJPYm: No money
+2026-04-14 11:15:48 [INFO] Loading data for AUDMXNm
+2026-04-14 11:15:48 [INFO] \u2705 AUDMXNm: 1500 bars loaded
+2026-04-14 11:15:48 [INFO] \u26a0\ufe0f High spread on AUDMXNm - skipping
+2026-04-14 11:15:48 [INFO] Loading data for USDDKKm
+2026-04-14 11:15:48 [INFO] \u2705 USDDKKm: 1500 bars loaded
+2026-04-14 11:15:48 [INFO] \u26a0\ufe0f High spread on USDDKKm - skipping
+2026-04-14 11:16:28 [INFO] Shutdown signal received. Closing MT5...
+2026-04-14 11:16:32 [INFO] Running on Windows - using official MetaTrader5
+2026-04-14 11:16:32 [INFO] === BOT v6.2 STARTED ===
+2026-04-14 11:16:40 [INFO] Loading data for EURUSDm
+2026-04-14 11:16:40 [INFO] \u2705 EURUSDm: 1500 bars loaded
+2026-04-14 11:16:40 [INFO] Model loaded for EURUSDm
+2026-04-14 11:16:40 [INFO] Loading data for USDJPYm
+2026-04-14 11:16:40 [INFO] \u2705 USDJPYm: 1500 bars loaded
+2026-04-14 11:16:40 [INFO] Model loaded for USDJPYm
+2026-04-14 11:16:40 [INFO] Loading data for XAUUSDm
+2026-04-14 11:16:40 [INFO] \u2705 XAUUSDm: 1500 bars loaded
+2026-04-14 11:16:40 [INFO] Model loaded for XAUUSDm
+2026-04-14 11:16:40 [INFO] Loading data for UKOILm
+2026-04-14 11:16:40 [INFO] \u2705 UKOILm: 1500 bars loaded
+2026-04-14 11:16:40 [INFO] Model loaded for UKOILm
+2026-04-14 11:16:40 [INFO] Loading data for USOILm
+2026-04-14 11:16:40 [INFO] \u2705 USOILm: 1500 bars loaded
+2026-04-14 11:16:40 [INFO] Model loaded for USOILm
+2026-04-14 11:16:40 [INFO] Loading data for XNGUSDm
+2026-04-14 11:16:40 [INFO] \u2705 XNGUSDm: 1500 bars loaded
+2026-04-14 11:16:40 [INFO] Model loaded for XNGUSDm
+2026-04-14 11:16:40 [INFO] Loading data for AUDCADm
+2026-04-14 11:16:40 [INFO] \u2705 AUDCADm: 1500 bars loaded
+2026-04-14 11:16:40 [INFO] Model loaded for AUDCADm
+2026-04-14 11:16:40 [INFO] Loading data for AUDCHFm
+2026-04-14 11:16:40 [INFO] \u2705 AUDCHFm: 1500 bars loaded
+2026-04-14 11:16:40 [INFO] Model loaded for AUDCHFm
+2026-04-14 11:16:40 [INFO] Loading data for AUDDKKm
+2026-04-14 11:16:40 [INFO] \u2705 AUDDKKm: 1500 bars loaded
+2026-04-14 11:16:41 [INFO] Model loaded for AUDDKKm
+2026-04-14 11:16:41 [INFO] Loading data for AUDJPYm
+2026-04-14 11:16:41 [INFO] \u2705 AUDJPYm: 1500 bars loaded
+2026-04-14 11:16:41 [INFO] Model loaded for AUDJPYm
+2026-04-14 11:16:41 [INFO] Loading data for AUDMXNm
+2026-04-14 11:16:41 [INFO] \u2705 AUDMXNm: 1500 bars loaded
+2026-04-14 11:16:41 [INFO] Model loaded for AUDMXNm
+2026-04-14 11:16:41 [INFO] Loading data for USDDKKm
+2026-04-14 11:16:41 [INFO] \u2705 USDDKKm: 1500 bars loaded
+2026-04-14 11:16:41 [INFO] Model loaded for USDDKKm
+2026-04-14 11:16:41 [INFO] Bot main loop started - Monitoring symbols...
+
+2026-04-14 11:16:41 [INFO] Loading data for EURUSDm
+2026-04-14 11:16:41 [INFO] \u2705 EURUSDm: 1500 bars loaded
+2026-04-14 11:16:41 [ERROR] \u274c Trade failed on EURUSDm: No money
+2026-04-14 11:16:41 [INFO] Loading data for USDJPYm
+2026-04-14 11:16:41 [INFO] \u2705 USDJPYm: 1500 bars loaded
+2026-04-14 11:16:41 [INFO] Loading data for XAUUSDm
+2026-04-14 11:16:41 [INFO] \u2705 XAUUSDm: 1500 bars loaded
+2026-04-14 11:16:41 [ERROR] \u274c Trade failed on XAUUSDm: No money
+2026-04-14 11:16:41 [INFO] Loading data for XNGUSDm
+2026-04-14 11:16:41 [INFO] \u2705 XNGUSDm: 1500 bars loaded
+2026-04-14 11:16:41 [ERROR] \u274c Trade failed on XNGUSDm: Invalid stops
+2026-04-14 11:16:41 [INFO] Loading data for AUDDKKm
+2026-04-14 11:16:41 [INFO] \u2705 AUDDKKm: 1500 bars loaded
+2026-04-14 11:16:41 [INFO] Loading data for AUDJPYm
+2026-04-14 11:16:41 [INFO] \u2705 AUDJPYm: 1500 bars loaded
+2026-04-14 11:16:41 [ERROR] \u274c Trade failed on AUDJPYm: No money
+2026-04-14 11:16:41 [INFO] Loading data for AUDMXNm
+2026-04-14 11:16:41 [INFO] \u2705 AUDMXNm: 1500 bars loaded
+2026-04-14 11:16:41 [INFO] \u26a0\ufe0f High spread on AUDMXNm - skipping
+2026-04-14 11:16:41 [INFO] Loading data for USDDKKm
+2026-04-14 11:16:41 [INFO] \u2705 USDDKKm: 1500 bars loaded
+2026-04-14 11:16:41 [INFO] \u26a0\ufe0f High spread on USDDKKm - skipping
+2026-04-14 11:16:59 [INFO] Shutdown signal received. Closing MT5...
+2026-04-14 11:17:02 [INFO] Running on Windows - using official MetaTrader5
+2026-04-14 11:17:02 [INFO] === BOT v6.2 STARTED ===
+2026-04-14 11:17:10 [INFO] Loading data for EURUSDm
+2026-04-14 11:17:10 [INFO] \u2705 EURUSDm: 1500 bars loaded
+2026-04-14 11:17:10 [INFO] Model loaded for EURUSDm
+2026-04-14 11:17:10 [INFO] Loading data for USDJPYm
+2026-04-14 11:17:10 [INFO] \u2705 USDJPYm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Model loaded for USDJPYm
+2026-04-14 11:17:11 [INFO] Loading data for XAUUSDm
+2026-04-14 11:17:11 [INFO] \u2705 XAUUSDm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Model loaded for XAUUSDm
+2026-04-14 11:17:11 [INFO] Loading data for UKOILm
+2026-04-14 11:17:11 [INFO] \u2705 UKOILm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Model loaded for UKOILm
+2026-04-14 11:17:11 [INFO] Loading data for USOILm
+2026-04-14 11:17:11 [INFO] \u2705 USOILm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Model loaded for USOILm
+2026-04-14 11:17:11 [INFO] Loading data for XNGUSDm
+2026-04-14 11:17:11 [INFO] \u2705 XNGUSDm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Model loaded for XNGUSDm
+2026-04-14 11:17:11 [INFO] Loading data for AUDCADm
+2026-04-14 11:17:11 [INFO] \u2705 AUDCADm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Model loaded for AUDCADm
+2026-04-14 11:17:11 [INFO] Loading data for AUDCHFm
+2026-04-14 11:17:11 [INFO] \u2705 AUDCHFm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Model loaded for AUDCHFm
+2026-04-14 11:17:11 [INFO] Loading data for AUDDKKm
+2026-04-14 11:17:11 [INFO] \u2705 AUDDKKm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Model loaded for AUDDKKm
+2026-04-14 11:17:11 [INFO] Loading data for AUDJPYm
+2026-04-14 11:17:11 [INFO] \u2705 AUDJPYm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Model loaded for AUDJPYm
+2026-04-14 11:17:11 [INFO] Loading data for AUDMXNm
+2026-04-14 11:17:11 [INFO] \u2705 AUDMXNm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Model loaded for AUDMXNm
+2026-04-14 11:17:11 [INFO] Loading data for USDDKKm
+2026-04-14 11:17:11 [INFO] \u2705 USDDKKm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Model loaded for USDDKKm
+2026-04-14 11:17:11 [INFO] Bot main loop started - Monitoring symbols...
+
+2026-04-14 11:17:11 [INFO] Loading data for EURUSDm
+2026-04-14 11:17:11 [INFO] \u2705 EURUSDm: 1500 bars loaded
+2026-04-14 11:17:11 [ERROR] \u274c Trade failed on EURUSDm: No money
+2026-04-14 11:17:11 [INFO] Loading data for USDJPYm
+2026-04-14 11:17:11 [INFO] \u2705 USDJPYm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Loading data for XAUUSDm
+2026-04-14 11:17:11 [INFO] \u2705 XAUUSDm: 1500 bars loaded
+2026-04-14 11:17:11 [ERROR] \u274c Trade failed on XAUUSDm: No money
+2026-04-14 11:17:11 [INFO] Loading data for UKOILm
+2026-04-14 11:17:11 [INFO] \u2705 UKOILm: 1500 bars loaded
+2026-04-14 11:17:11 [ERROR] \u274c Trade failed on UKOILm: No money
+2026-04-14 11:17:11 [INFO] Loading data for USOILm
+2026-04-14 11:17:11 [INFO] \u2705 USOILm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] \u2705 ENTRY \u2192 SELL USOILm | Lot 8.51 | Prob 20.4%
+2026-04-14 11:17:11 [INFO] Loading data for XNGUSDm
+2026-04-14 11:17:11 [INFO] \u2705 XNGUSDm: 1500 bars loaded
+2026-04-14 11:17:11 [ERROR] \u274c Trade failed on XNGUSDm: Invalid stops
+2026-04-14 11:17:11 [INFO] Loading data for AUDCADm
+2026-04-14 11:17:11 [INFO] \u2705 AUDCADm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Loading data for AUDCHFm
+2026-04-14 11:17:11 [INFO] \u2705 AUDCHFm: 1500 bars loaded
+2026-04-14 11:17:11 [ERROR] \u274c Trade failed on AUDCHFm: No money
+2026-04-14 11:17:11 [INFO] Loading data for AUDDKKm
+2026-04-14 11:17:11 [INFO] \u2705 AUDDKKm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] Loading data for AUDJPYm
+2026-04-14 11:17:11 [INFO] \u2705 AUDJPYm: 1500 bars loaded
+2026-04-14 11:17:11 [ERROR] \u274c Trade failed on AUDJPYm: No money
+2026-04-14 11:17:11 [INFO] Loading data for AUDMXNm
+2026-04-14 11:17:11 [INFO] \u2705 AUDMXNm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] \u26a0\ufe0f High spread on AUDMXNm - skipping
+2026-04-14 11:17:11 [INFO] Loading data for USDDKKm
+2026-04-14 11:17:11 [INFO] \u2705 USDDKKm: 1500 bars loaded
+2026-04-14 11:17:11 [INFO] \u26a0\ufe0f High spread on USDDKKm - skipping
+2026-04-14 11:18:11 [WARNING] High drawdown (96.0%) - Pausing 30 min
+2026-04-14 11:20:28 [INFO] Shutdown signal received. Closing MT5...
+2026-04-14 11:20:37 [INFO] Running on Windows - using official MetaTrader5
+2026-04-14 11:20:37 [INFO] === BOT v6.2 STARTED ===
+2026-04-14 11:20:45 [INFO] Loading data for EURUSDm
+2026-04-14 11:20:45 [INFO] \u2705 EURUSDm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Model loaded for EURUSDm
+2026-04-14 11:20:45 [INFO] Loading data for USDJPYm
+2026-04-14 11:20:45 [INFO] \u2705 USDJPYm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Model loaded for USDJPYm
+2026-04-14 11:20:45 [INFO] Loading data for XAUUSDm
+2026-04-14 11:20:45 [INFO] \u2705 XAUUSDm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Model loaded for XAUUSDm
+2026-04-14 11:20:45 [INFO] Loading data for UKOILm
+2026-04-14 11:20:45 [INFO] \u2705 UKOILm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Model loaded for UKOILm
+2026-04-14 11:20:45 [INFO] Loading data for USOILm
+2026-04-14 11:20:45 [INFO] \u2705 USOILm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Model loaded for USOILm
+2026-04-14 11:20:45 [INFO] Loading data for XNGUSDm
+2026-04-14 11:20:45 [INFO] \u2705 XNGUSDm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Model loaded for XNGUSDm
+2026-04-14 11:20:45 [INFO] Loading data for AUDCADm
+2026-04-14 11:20:45 [INFO] \u2705 AUDCADm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Model loaded for AUDCADm
+2026-04-14 11:20:45 [INFO] Loading data for AUDCHFm
+2026-04-14 11:20:45 [INFO] \u2705 AUDCHFm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Model loaded for AUDCHFm
+2026-04-14 11:20:45 [INFO] Loading data for AUDDKKm
+2026-04-14 11:20:45 [INFO] \u2705 AUDDKKm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Model loaded for AUDDKKm
+2026-04-14 11:20:45 [INFO] Loading data for AUDJPYm
+2026-04-14 11:20:45 [INFO] \u2705 AUDJPYm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Model loaded for AUDJPYm
+2026-04-14 11:20:45 [INFO] Loading data for AUDMXNm
+2026-04-14 11:20:45 [INFO] \u2705 AUDMXNm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Model loaded for AUDMXNm
+2026-04-14 11:20:45 [INFO] Loading data for USDDKKm
+2026-04-14 11:20:45 [INFO] \u2705 USDDKKm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Model loaded for USDDKKm
+2026-04-14 11:20:45 [INFO] Bot main loop started - Monitoring symbols...
+
+2026-04-14 11:20:45 [INFO] Loading data for EURUSDm
+2026-04-14 11:20:45 [INFO] \u2705 EURUSDm: 1500 bars loaded
+2026-04-14 11:20:45 [ERROR] \u274c Trade failed on EURUSDm: No money
+2026-04-14 11:20:45 [INFO] Loading data for USDJPYm
+2026-04-14 11:20:45 [INFO] \u2705 USDJPYm: 1500 bars loaded
+2026-04-14 11:20:45 [ERROR] \u274c Trade failed on USDJPYm: No money
+2026-04-14 11:20:45 [INFO] Loading data for XAUUSDm
+2026-04-14 11:20:45 [INFO] \u2705 XAUUSDm: 1500 bars loaded
+2026-04-14 11:20:45 [ERROR] \u274c Trade failed on XAUUSDm: No money
+2026-04-14 11:20:45 [INFO] Loading data for UKOILm
+2026-04-14 11:20:45 [INFO] \u2705 UKOILm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] Loading data for USOILm
+2026-04-14 11:20:45 [INFO] \u2705 USOILm: 1500 bars loaded
+2026-04-14 11:20:45 [INFO] \u2705 ENTRY \u2192 SELL USOILm | Lot 8.80 | Prob 26.6%
+2026-04-14 11:20:45 [INFO] Loading data for XNGUSDm
+2026-04-14 11:20:45 [INFO] \u2705 XNGUSDm: 1500 bars loaded
+2026-04-14 11:20:45 [ERROR] \u274c Trade failed on XNGUSDm: Invalid stops
+2026-04-14 11:20:45 [INFO] Loading data for AUDCADm
+2026-04-14 11:20:45 [INFO] \u2705 AUDCADm: 1500 bars loaded
+2026-04-14 11:20:46 [INFO] Loading data for AUDCHFm
+2026-04-14 11:20:46 [INFO] \u2705 AUDCHFm: 1500 bars loaded
+2026-04-14 11:20:46 [ERROR] \u274c Trade failed on AUDCHFm: No money
+2026-04-14 11:20:46 [INFO] Loading data for AUDDKKm
+2026-04-14 11:20:46 [INFO] \u2705 AUDDKKm: 1500 bars loaded
+2026-04-14 11:20:46 [INFO] Loading data for AUDJPYm
+2026-04-14 11:20:46 [INFO] \u2705 AUDJPYm: 1500 bars loaded
+2026-04-14 11:20:46 [ERROR] \u274c Trade failed on AUDJPYm: No money
+2026-04-14 11:20:46 [INFO] Loading data for AUDMXNm
+2026-04-14 11:20:46 [INFO] \u2705 AUDMXNm: 1500 bars loaded
+2026-04-14 11:20:46 [INFO] \u26a0\ufe0f High spread on AUDMXNm - skipping
+2026-04-14 11:20:46 [INFO] Loading data for USDDKKm
+2026-04-14 11:20:46 [INFO] \u2705 USDDKKm: 1500 bars loaded
+2026-04-14 11:20:46 [INFO] \u26a0\ufe0f High spread on USDDKKm - skipping
+2026-04-14 11:21:46 [WARNING] High drawdown (84.6%) - Pausing 30 min
