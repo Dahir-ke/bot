@@ -352,3 +352,219 @@
 2026-04-14 11:27:36 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
 2026-04-14 11:27:46 [ERROR] Error in main loop: can't subtract offset-naive and offset-aware datetimes
 2026-04-14 11:27:50 [INFO] Bot shutting down...
+2026-04-14 11:27:56 [INFO] Running on Windows
+2026-04-14 11:27:56 [INFO] === SAFE BOT v6.3.1 STARTED ===
+2026-04-14 11:27:56 [INFO] Training new model for EURUSDm...
+2026-04-14 11:27:56 [INFO] Training new model for USDJPYm...
+2026-04-14 11:27:56 [INFO] Training new model for XAUUSDm...
+2026-04-14 11:27:56 [INFO] Training new model for UKOILm...
+2026-04-14 11:27:56 [INFO] Training new model for USOILm...
+2026-04-14 11:27:56 [INFO] Training new model for XNGUSDm...
+2026-04-14 11:27:56 [INFO] Training new model for AUDCADm...
+2026-04-14 11:27:56 [INFO] Training new model for AUDCHFm...
+2026-04-14 11:27:57 [INFO] Training new model for AUDJPYm...
+2026-04-14 11:27:57 [INFO] Bot running in SAFE mode (One trade per symbol + cooldown + daily limit)
+
+2026-04-14 11:27:57 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:28:12 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:28:27 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:28:42 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:28:57 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:29:12 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:29:27 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:29:42 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:29:57 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:30:12 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:30:27 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:30:42 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:30:57 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:31:12 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:31:27 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:31:43 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:31:58 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:32:13 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:32:28 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:32:43 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:32:58 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:33:13 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:33:28 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:33:43 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:33:58 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:34:13 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:34:28 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:34:43 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:34:58 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:35:13 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:35:28 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:35:43 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:35:59 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:35:59 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:36:14 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:36:14 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:36:29 [INFO] High spread on XAUUSDm (280.0) - skipping
+2026-04-14 11:36:29 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:36:44 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:36:44 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:36:59 [INFO] High spread on XAUUSDm (280.0) - skipping
+2026-04-14 11:37:00 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:37:15 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:37:15 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:37:30 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:37:45 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:38:00 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:38:15 [INFO] High spread on XAUUSDm (280.0) - skipping
+2026-04-14 11:38:15 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:38:30 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:38:45 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:39:00 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:39:15 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:39:30 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:39:46 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:40:01 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:40:16 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:40:31 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:40:46 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:41:01 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:41:16 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:41:31 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:41:46 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:42:01 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:42:16 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:42:31 [INFO] High spread on XAUUSDm (280.0) - skipping
+2026-04-14 11:42:31 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:42:47 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:42:47 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:43:02 [INFO] High spread on XAUUSDm (396.0) - skipping
+2026-04-14 11:43:02 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:43:17 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:43:17 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:43:33 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:43:33 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:43:48 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:44:03 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:44:03 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:44:18 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:44:18 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:44:34 [INFO] High spread on XAUUSDm (396.0) - skipping
+2026-04-14 11:44:34 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:44:49 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:44:49 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:45:04 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:45:19 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:45:34 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:45:49 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:46:04 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:46:19 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:46:34 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:46:49 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:46:50 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:47:05 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:47:20 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:47:35 [INFO] High spread on XAUUSDm (280.0) - skipping
+2026-04-14 11:47:35 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:47:50 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:48:05 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:48:20 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:48:35 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:48:50 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:49:05 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:49:05 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:49:21 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:49:21 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:49:36 [INFO] High spread on XAUUSDm (280.0) - skipping
+2026-04-14 11:49:36 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:49:51 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:50:06 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:50:21 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:50:36 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:50:51 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:51:06 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:51:21 [INFO] High spread on XAUUSDm (280.0) - skipping
+2026-04-14 11:51:21 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:51:37 [INFO] High spread on XAUUSDm (396.0) - skipping
+2026-04-14 11:51:37 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:51:52 [INFO] High spread on XAUUSDm (280.0) - skipping
+2026-04-14 11:51:52 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:52:07 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:52:07 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:52:22 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:52:37 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:52:52 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:53:08 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:53:08 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:53:23 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:53:23 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:53:38 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:53:38 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:53:53 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:53:53 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:54:08 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:54:08 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:54:24 [INFO] High spread on XAUUSDm (308.0) - skipping
+2026-04-14 11:54:24 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:54:39 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:54:54 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:55:09 [ERROR] Main loop error: name 'ORDER_TIME_GTC' is not defined
+2026-04-14 11:55:14 [INFO] Bot shutting down...
+2026-04-14 11:55:19 [INFO] Running on Windows
+2026-04-14 11:55:19 [INFO] === SAFE BOT v6.4.0 STARTED ===
+2026-04-14 11:55:19 [INFO] Training new model for EURUSDm...
+2026-04-14 11:55:19 [INFO] Training new model for USDJPYm...
+2026-04-14 11:55:19 [INFO] Training new model for XAUUSDm...
+2026-04-14 11:55:20 [INFO] Training new model for UKOILm...
+2026-04-14 11:55:20 [INFO] Training new model for USOILm...
+2026-04-14 11:55:20 [INFO] Training new model for XNGUSDm...
+2026-04-14 11:55:20 [INFO] Training new model for AUDCADm...
+2026-04-14 11:55:20 [INFO] Training new model for AUDCHFm...
+2026-04-14 11:55:20 [INFO] Training new model for AUDJPYm...
+2026-04-14 11:55:20 [INFO] Bot running in SAFE mode with dynamic risk sizing...
+
+2026-04-14 11:55:20 [INFO] Daily equity reset: 580.25
+2026-04-14 11:55:20 [INFO] \u2705 TRADE OPENED \u2192 SELL EURUSDm | Lot 0.1 | Risk $0.00 (0.5% of equity)
+2026-04-14 11:55:20 [INFO] \u2705 TRADE OPENED \u2192 SELL USDJPYm | Lot 0.1 | Risk $0.01 (0.5% of equity)
+2026-04-14 11:55:20 [INFO] High spread on XAUUSDm - skipping
+2026-04-14 11:55:21 [INFO] \u2705 TRADE OPENED \u2192 SELL UKOILm | Lot 0.05 | Risk $0.03 (0.5% of equity)
+2026-04-14 11:55:21 [INFO] \u2705 TRADE OPENED \u2192 SELL USOILm | Lot 0.05 | Risk $0.03 (0.5% of equity)
+2026-04-14 11:55:21 [ERROR] Trade failed on XNGUSDm: Invalid stops (retcode=10016)
+2026-04-14 11:55:21 [INFO] \u2705 TRADE OPENED \u2192 SELL AUDCADm | Lot 0.1 | Risk $0.00 (0.5% of equity)
+2026-04-14 11:55:21 [INFO] \u2705 TRADE OPENED \u2192 SELL AUDCHFm | Lot 0.1 | Risk $0.00 (0.5% of equity)
+2026-04-14 11:55:21 [INFO] \u2705 TRADE OPENED \u2192 SELL AUDJPYm | Lot 0.1 | Risk $0.00 (0.5% of equity)
+2026-04-14 11:56:21 [INFO] High spread on XAUUSDm - skipping
+2026-04-14 11:56:21 [ERROR] Trade failed on XNGUSDm: Invalid stops (retcode=10016)
+2026-04-14 11:57:21 [INFO] High spread on XAUUSDm - skipping
+2026-04-14 11:57:21 [ERROR] Trade failed on XNGUSDm: Invalid stops (retcode=10016)
+2026-04-14 11:58:21 [INFO] High spread on XAUUSDm - skipping
+2026-04-14 11:58:21 [ERROR] Trade failed on XNGUSDm: Invalid stops (retcode=10016)
+2026-04-14 11:59:21 [INFO] High spread on XAUUSDm - skipping
+2026-04-14 11:59:21 [ERROR] Trade failed on XNGUSDm: Invalid stops (retcode=10016)
+2026-04-14 12:00:21 [INFO] High spread on XAUUSDm - skipping
+2026-04-14 12:00:21 [ERROR] Trade failed on XNGUSDm: Invalid stops (retcode=10016)
+2026-04-14 12:01:21 [INFO] High spread on XAUUSDm - skipping
+2026-04-14 12:01:21 [ERROR] Trade failed on XNGUSDm: Invalid stops (retcode=10016)
+2026-04-14 12:02:22 [INFO] High spread on XAUUSDm - skipping
+2026-04-14 12:02:22 [ERROR] Trade failed on XNGUSDm: Invalid stops (retcode=10016)
+2026-04-14 12:03:22 [INFO] High spread on XAUUSDm - skipping
+2026-04-14 12:03:22 [ERROR] Trade failed on XNGUSDm: Invalid stops (retcode=10016)
+2026-04-14 12:04:22 [WARNING] DAILY LOSS LIMIT HIT (5.1%) \u2192 Pausing 1 hour
+2026-04-14 12:08:31 [INFO] Bot shutting down...
+2026-04-14 15:00:38 [INFO] Running on Windows
+2026-04-14 15:00:38 [INFO] === SAFE BOT v6.4.0 STARTED ===
+2026-04-14 15:00:38 [INFO] Model loaded for EURUSDm
+2026-04-14 15:00:38 [INFO] Model loaded for USDJPYm
+2026-04-14 15:00:38 [INFO] Model loaded for XAUUSDm
+2026-04-14 15:00:38 [INFO] Model loaded for UKOILm
+2026-04-14 15:00:38 [INFO] Model loaded for USOILm
+2026-04-14 15:00:38 [INFO] Model loaded for XNGUSDm
+2026-04-14 15:00:38 [INFO] Model loaded for AUDCADm
+2026-04-14 15:00:38 [INFO] Model loaded for AUDCHFm
+2026-04-14 15:00:38 [INFO] Model loaded for AUDJPYm
+2026-04-14 15:00:38 [INFO] Bot running in SAFE mode with dynamic risk sizing...
+
+2026-04-14 15:00:38 [INFO] Daily equity reset: 511.59
+2026-04-14 15:00:39 [INFO] ✅ TRADE OPENED → BUY USDJPYm | Lot 0.1 | Risk $0.01 (0.5% of equity)
+2026-04-14 15:00:39 [INFO] High spread on XAUUSDm - skipping
+2026-04-14 15:00:39 [INFO] ✅ TRADE OPENED → BUY UKOILm | Lot 0.05 | Risk $0.02 (0.5% of equity)
+2026-04-14 15:00:39 [INFO] ✅ TRADE OPENED → BUY XNGUSDm | Lot 0.1 | Risk $0.00 (0.5% of equity)
+2026-04-14 15:00:39 [INFO] ✅ TRADE OPENED → SELL AUDCADm | Lot 0.1 | Risk $0.00 (0.5% of equity)
+2026-04-14 15:00:39 [INFO] ✅ TRADE OPENED → BUY AUDJPYm | Lot 0.1 | Risk $0.01 (0.5% of equity)
+2026-04-14 15:01:39 [WARNING] DAILY LOSS LIMIT HIT (3.9%) → Pausing 1 hour
