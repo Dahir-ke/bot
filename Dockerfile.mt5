@@ -1,12 +1,18 @@
 # Runs the actual Exness MT5 terminal under Wine (MT5 has no Linux build)
-# plus the mt5linux bridge server (mt5server.exe - a standalone binary that
-# bundles its own Windows Python + the MetaTrader5 package, so no separate
-# Wine-Python install is needed) that the bot connects to over RPyC on
-# :18812. Headless - Xvfb provides the virtual display Windows GUI apps
-# need; x11vnc is only for optional debugging, bound to 127.0.0.1 and
-# reached via SSH tunnel, never exposed publicly. The terminal is left
-# uninstalled-and-unlaunched here; mt5.initialize(login=,password=,server=)
-# in the bot itself launches and logs it in on demand (see MQL5's own
+# plus a Wine-hosted Windows Python running mt5_server.py, a small
+# classic-RPyC server we own end to end, exposing the real MetaTrader5
+# PyPI package on :18812 for the bot. Not mt5linux's prebuilt
+# mt5server.exe (a third-party PyInstaller binary of unclear build
+# date/provenance, never confirmed to actually work here across four
+# different Wine configurations including MetaQuotes' own official
+# recipe) - installing genuine Windows Python + `pip install
+# MetaTrader5` isolates whether that specific binary was the broken
+# piece, separate from Wine/terminal config. Headless - Xvfb provides
+# the virtual display Windows GUI apps need; x11vnc is only for
+# optional debugging, bound to 127.0.0.1 and reached via SSH tunnel,
+# never exposed publicly. The terminal is left uninstalled-and-
+# unlaunched here; mt5.initialize(login=,password=,server=) in the bot
+# itself launches and logs it in on demand (see MQL5's own
 # mt5.initialize() docs - it starts the terminal itself if one isn't
 # already running, so there's no separate silent-login config file needed).
 FROM ubuntu:24.04
@@ -117,9 +123,29 @@ RUN wget -q https://download.mql5.com/cdn/web/exness.technologies.ltd/mt5/exness
     && test -n "$found" \
     && echo "MT5 terminal installed OK at: $found"
 
-# Pinned release, not "latest" - a future release can't silently change
-# what's running against a live account without a deliberate version bump.
-RUN wget -q https://github.com/lucas-campagna/mt5linux/releases/download/server-1.1.1/mt5server.exe -O mt5server.exe
+# Genuine Windows Python under Wine, not a prebuilt binary. 3.12.7 -
+# officially supported by both the current MetaTrader5 PyPI package
+# and rpyc.
+RUN wget -q https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe -O python-installer.exe \
+    && (Xvfb :96 -screen 0 1024x768x16 &) \
+    && sleep 3 \
+    && DISPLAY=:96 wine python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0; true \
+    && sleep 5 && wineserver -w \
+    && rm python-installer.exe \
+    && found=$(find "$WINEPREFIX/drive_c" -iname "python.exe" -print -quit) \
+    && test -n "$found" \
+    && echo "Wine Python installed OK at: $found"
+
+# rpyc>=6.0.0,<7 - matches the pin already forced on the bot side (see
+# requirements-linux.txt) for mt5linux==0.2.4's classic-RPyC client;
+# both ends need the same major RPyC wire-protocol version.
+RUN PYEXE=$(find "$WINEPREFIX/drive_c" -iname "python.exe" -path "*Python312*" -print -quit) \
+    && (Xvfb :95 -screen 0 1024x768x16 &) \
+    && sleep 3 \
+    && DISPLAY=:95 wine "$PYEXE" -m pip install --no-cache-dir MetaTrader5 "rpyc>=6.0.0,<7" \
+    && wineserver -w
+
+COPY mt5_server.py /opt/mt5/mt5_server.py
 
 COPY mt5-entrypoint.sh /opt/mt5/entrypoint.sh
 RUN chmod +x /opt/mt5/entrypoint.sh
