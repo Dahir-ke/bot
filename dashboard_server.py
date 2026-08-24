@@ -128,4 +128,14 @@ def api_equity():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    # 0.0.0.0, not 127.0.0.1 - Docker's port publishing (see
+    # docker-compose.yml) forwards to this container's bridge IP, not
+    # literally its own loopback, so a loopback-only bind refuses every
+    # connection Docker forwards in. Confirmed by hand: nginx got
+    # "Connection reset by peer" on every request, and curl from the VPS
+    # host itself to 127.0.0.1:8800 failed outright - the dashboard was
+    # never actually reachable from outside its own container. Safe to
+    # widen: the host-side publish is still 127.0.0.1:8800 only (see
+    # docker-compose.yml), so this stays unreachable except through
+    # nginx or a local SSH tunnel, same as before.
+    app.run(host="0.0.0.0", port=5000, debug=False)
