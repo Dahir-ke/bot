@@ -1,11 +1,12 @@
 # Trading bot stack - Wine-hosted Exness MT5 terminal + the mt5linux
-# bridge, the bot process itself, and a read-only dashboard. Fully
-# isolated from every other stack on this VPS (its own directory, its own
-# image names) and never routed through the shared nginx proxy - the
-# dashboard and VNC debug port are reachable only via 127.0.0.1, tunneled
-# over SSH, never the public internet, since both can show real account
-# data. See DEPLOY_CONTABO.md in this repo for the full setup/verification
-# walkthrough.
+# bridge, the bot process itself, and a read-only dashboard. Isolated from
+# every other stack on this VPS (its own directory, its own image names).
+# The dashboard is the one thing here reachable publicly, at
+# bot.tatuatechnology.com via the shared nginx proxy - see
+# deploy/bot.conf and DEPLOY_CONTABO.md - and it requires login (see
+# dashboard_server.py) precisely because it's public and shows real
+# account data. MT5's own VNC stays 127.0.0.1-only / SSH-tunnel debug
+# access, never routed through nginx.
 services:
   mt5:
     build:
@@ -47,10 +48,16 @@ services:
       dockerfile: Dockerfile.bot
     image: trading-bot-app:latest
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       BOT_DATA_DIR: /app/data
     volumes:
       - ./data:/app/data
+    # nginx reaches this the same way it reaches every other stack on this
+    # VPS - proxy_pass to 127.0.0.1:<port> (see deploy/bot.conf). Not
+    # bound to 0.0.0.0, so it's never reachable except through nginx or a
+    # local SSH tunnel to this same 127.0.0.1 address.
     ports:
       - "127.0.0.1:8800:5000"
     command: ["python", "dashboard_server.py"]

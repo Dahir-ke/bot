@@ -1,13 +1,18 @@
 # Deploying the trading bot to Contabo
 
 Runs on the same VPS as grandfinalehotel/DukaSync, but fully isolated in
-its own `~/bot` directory and its own Docker image names - nothing here
-is routed through the shared nginx proxy, and nothing here is exposed to
-the public internet. See `docker-compose.yml` for why.
+its own `~/bot` directory and its own Docker image names. The dashboard is
+reachable publicly at bot.tatuatechnology.com (login-gated - see
+`dashboard_server.py`); MT5's own VNC stays 127.0.0.1-only / SSH-tunnel
+debug access. See `docker-compose.yml` for the full reasoning.
 
 **This connects to a live account with real money.** The deploy steps
 below build and verify the MT5 connection but never start the actual
 trading loop - that's a separate, explicit, manual step (step 6).
+
+**Only `bo.py` gets run.** `bot.py` is the older v6.4.0 variant, kept in
+the repo for reference/comparison, but nothing here starts it - every
+command below is `bo.py` specifically, not "bo.py or bot.py".
 
 ## 1. Get the code onto the VPS
 
@@ -86,25 +91,40 @@ mt5.shutdown()
 
 `account_info()` returning real balance/equity/leverage confirms the
 terminal launched, logged in, and the bridge works end to end - all
-without `bo.py`/`bot.py` (and therefore no trading logic) ever running.
+without `bo.py` (and therefore no trading logic) ever running.
 
 If this fails, check `docker compose logs mt5` first. Optional: enable
 VNC to see the terminal's own window (`VNC_PASSWORD=<something>` in
 `.env`, `docker compose up -d --force-recreate mt5`, then tunnel - see
 step 5) and look for a login-error dialog.
 
-## 5. View the dashboard (private only)
+## 5. Point DNS and issue a certificate
 
-Nothing here is on the public internet. From your own machine:
+Add an A record for `bot.tatuatechnology.com` pointing at this VPS's IP,
+same as till/supermarket. Once it's propagated (`dig
+bot.tatuatechnology.com`):
 
 ```bash
-ssh -L 8800:127.0.0.1:8800 deploy@<vps-ip>
+mkdir -p ~/letsencrypt ~/certbot-webroot
+docker run --rm -v $HOME/letsencrypt:/etc/letsencrypt -v $HOME/certbot-webroot:/var/www/certbot \
+  certbot/certbot certonly --webroot -w /var/www/certbot -d bot.tatuatechnology.com
 ```
 
-Then open `http://localhost:8800` in your own browser. Leave that SSH
-session open while you're using it.
+Add a `listen 443 ssl` server block to
+`~/proxy/sites-enabled/bot.conf` (copy the shape of any of the other
+`*.conf` files there), point the port-80 block's `location /` at a
+redirect to https instead of proxying directly, then:
 
-For the MT5 terminal's own VNC (only if `VNC_PASSWORD` is set):
+```bash
+cd ~/proxy && docker compose exec nginx nginx -t && docker compose exec nginx nginx -s reload
+```
+
+`https://bot.tatuatechnology.com` now shows the dashboard's own login
+page - sign in with `DASHBOARD_USERNAME`/`DASHBOARD_PASSWORD` from `.env`.
+It's public, but nothing behind that login is reachable without it.
+
+For the MT5 terminal's own VNC (debug only, only if `VNC_PASSWORD` is
+set, never exposed through nginx):
 
 ```bash
 ssh -L 8801:127.0.0.1:8801 deploy@<vps-ip>
@@ -118,7 +138,7 @@ trades:
 
 ```bash
 docker compose up -d bot   # brings the container up idle (sleep infinity)
-docker compose exec -d bot python bo.py   # or bot.py - starts the trading loop
+docker compose exec -d bot python bo.py   # starts the trading loop
 docker compose logs -f bot
 ```
 
@@ -128,7 +148,7 @@ drop it to watch the first few minutes live before backgrounding it.
 To stop trading:
 
 ```bash
-docker compose exec bot pkill -f bo.py   # or bot.py
+docker compose exec bot pkill -f bo.py
 ```
 
 The container itself stays up (still `sleep infinity`'d) either way -

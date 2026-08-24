@@ -79,7 +79,10 @@
 </head>
 <body>
 
-<h1>Trading Bot Dashboard <span id="statusBadge" class="badge ok">LIVE</span></h1>
+<div style="display:flex; align-items:baseline; justify-content:space-between;">
+  <h1>Trading Bot Dashboard <span id="statusBadge" class="badge ok">LIVE</span></h1>
+  <form method="post" action="/logout"><button type="submit" style="background:none; border:1px solid var(--panel-border); color:var(--muted); border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer;">Log out</button></form>
+</div>
 <div class="sub" id="subline">Loading…</div>
 
 <div class="cards">

@@ -15,7 +15,12 @@ ENV DEBIAN_FRONTEND=noninteractive \
     WINEARCH=win64 \
     WINEPREFIX=/root/.wine \
     WINEDEBUG=-all \
-    DISPLAY=:99
+    DISPLAY=:99 \
+    # Disables Wine's built-in Mono/Gecko installer prompts (.NET and
+    # embedded-browser support neither MT5 nor mt5server.exe need) - left
+    # enabled, the first wineboot in a headless container with no way to
+    # click through a dialog hangs for minutes before failing outright.
+    WINEDLLOVERRIDES="mscoree=;mshtml="
 
 RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-install-recommends \
       wget gnupg2 ca-certificates \
