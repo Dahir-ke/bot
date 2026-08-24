@@ -29,25 +29,22 @@ RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-in
     && wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key \
     && wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/noble/winehq-noble.sources \
     && apt-get update \
-    # 11.0 (winehq-stable latest) installs and runs the terminal fully
-    # (renders, streams live quotes) but mt5.initialize()'s login
-    # handshake never reaches it: "MCP started on 127.0.0.1:22346" logs,
-    # then nothing else, ever, across multiple fresh launches and
-    # timeouts up to 180s. Pinning back one full release to 10.0.0.0
-    # (still winehq-stable) reproduced the identical failure - confirmed
-    # by hand, ruling out that specific regression window. Now trying
-    # winehq-staging 9.22 (the most recent 9.x point release; stable
-    # only ships 10.0/11.0, staging is the only channel in this repo
-    # that reaches back to the 9.x line) - a full major version back,
-    # not just one release.
-    # Every package in the chain needs the same explicit pin - apt
-    # won't resolve just the top-level meta-package's pin on its own
-    # (confirmed by hand: unmet "Depends: wine-stable (= ...)").
-    && apt-get install -y --no-install-recommends --install-recommends \
-         winehq-staging=9.22~noble-1 \
-         wine-staging=9.22~noble-1 \
-         wine-staging-amd64=9.22~noble-1 \
-         wine-staging-i386=9.22~noble-1 \
+    # Three Wine versions (staging 9.22, stable 10.0, stable 11.0) all
+    # reproduced the identical failure by hand - login handshake never
+    # reaches the terminal ("MCP started on 127.0.0.1:22346" logs, then
+    # nothing else, ever). Blind version-guessing was the wrong axis
+    # entirely: MetaQuotes' own official Linux installer script
+    # (download.terminal.free/cdn/web/metaquotes.software.corp/mt5/mt5linux.sh,
+    # confirmed genuine - X-Service: MQL5 API response header, referenced
+    # from metaquotes.net's own release notes) uses plain `winehq-staging`
+    # (latest, unpinned - they don't pin either) and, critically, two
+    # things we'd never done: `winecfg -v=win11` (every terminal log
+    # we'd captured said "Windows 10 build 19043 on Wine..." - we were
+    # never even emulating the Windows version MetaQuotes actually
+    # configures) and installing the Microsoft Edge WebView2 Runtime
+    # before MT5 itself. Matching their exact recipe now instead of
+    # continuing to guess our own.
+    && apt-get install -y --no-install-recommends --install-recommends winehq-staging \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 
@@ -65,8 +62,22 @@ WORKDIR /opt/mt5
 #
 # Boots the Wine prefix once at build time (registry init, first-launch
 # housekeeping) so container startup doesn't pay that cost on every restart.
+# `winecfg -v=win11` matches MetaQuotes' own installer exactly - without
+# it, Wine's default Windows-version emulation left every terminal log
+# reporting "Windows 10 build 19043", not what MetaQuotes actually tests
+# and configures.
 RUN Xvfb :99 -screen 0 1024x768x16 & \
-    sleep 3 && DISPLAY=:99 wineboot --init && wineserver -w
+    sleep 3 && DISPLAY=:99 wineboot --init && DISPLAY=:99 winecfg -v=win11 && wineserver -w
+
+# Microsoft Edge WebView2 Runtime - MetaQuotes' own installer puts this
+# on every Linux/Wine setup before MT5 itself; same URL their script
+# uses. /silent /install matches their exact invocation, no GUI dialog.
+RUN wget -q https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/f2910a1e-e5a6-4f17-b52d-7faf525d17f8/MicrosoftEdgeWebview2Setup.exe -O webview2.exe \
+    && (Xvfb :97 -screen 0 1024x768x16 &) \
+    && sleep 3 \
+    && DISPLAY=:97 wine webview2.exe /silent /install; true \
+    && sleep 5 && wineserver -w \
+    && rm webview2.exe
 
 # The broker-branded MT5 terminal - official MetaQuotes CDN, the same
 # infrastructure every broker's build is served from (verified reachable
