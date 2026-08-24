@@ -38,7 +38,13 @@ if platform.system() == "Windows":
     logging.info("Running on Windows")
 else:
     from mt5linux import MetaTrader5
-    mt5 = MetaTrader5()
+    # Defaults match a same-machine mt5linux setup (unchanged local
+    # behavior); the Docker deployment runs the bridge in a separate
+    # "mt5" container, so MT5_BRIDGE_HOST=mt5 there - see docker-compose.yml.
+    mt5 = MetaTrader5(
+        host=os.environ.get("MT5_BRIDGE_HOST", "localhost"),
+        port=int(os.environ.get("MT5_BRIDGE_PORT", "18812")),
+    )
     logging.info("Running on Linux with mt5linux")
 
 # ====================== MT5 CONSTANTS ======================

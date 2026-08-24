@@ -1,0 +1,58 @@
+# Runs the actual Exness MT5 terminal under Wine (MT5 has no Linux build)
+# plus the mt5linux bridge server (mt5server.exe - a standalone binary that
+# bundles its own Windows Python + the MetaTrader5 package, so no separate
+# Wine-Python install is needed) that the bot connects to over RPyC on
+# :18812. Headless - Xvfb provides the virtual display Windows GUI apps
+# need; x11vnc is only for optional debugging, bound to 127.0.0.1 and
+# reached via SSH tunnel, never exposed publicly. The terminal is left
+# uninstalled-and-unlaunched here; mt5.initialize(login=,password=,server=)
+# in the bot itself launches and logs it in on demand (see MQL5's own
+# mt5.initialize() docs - it starts the terminal itself if one isn't
+# already running, so there's no separate silent-login config file needed).
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    WINEARCH=win64 \
+    WINEPREFIX=/root/.wine \
+    WINEDEBUG=-all \
+    DISPLAY=:99
+
+RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-install-recommends \
+      wget gnupg2 ca-certificates \
+      xvfb x11vnc \
+    && mkdir -pm755 /etc/apt/keyrings \
+    && wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key \
+    && wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/noble/winehq-noble.sources \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends --install-recommends winehq-stable \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/mt5
+
+# Boots the Wine prefix once at build time (registry init, first-launch
+# housekeeping) so container startup doesn't pay that cost on every restart.
+RUN (Xvfb :99 -screen 0 1024x768x16 &) \
+    && sleep 3 && wineboot --init && sleep 5 && wineserver -w
+
+# The broker-branded MT5 terminal - official MetaQuotes CDN, the same
+# infrastructure every broker's build is served from (verified reachable
+# and correctly typed before use here). /auto is MetaQuotes' own documented
+# unattended-install flag. Installing it (not just downloading) registers
+# it in the Wine registry so mt5.initialize() can auto-detect it later
+# with no explicit path.
+RUN wget -q https://download.mql5.com/cdn/web/exness.technologies.ltd/mt5/exness5setup.exe -O mt5setup.exe \
+    && (Xvfb :99 -screen 0 1024x768x16 &) \
+    && sleep 3 \
+    && wine mt5setup.exe /auto \
+    && sleep 20 && wineserver -k && sleep 2 \
+    && rm mt5setup.exe
+
+# Pinned release, not "latest" - a future release can't silently change
+# what's running against a live account without a deliberate version bump.
+RUN wget -q https://github.com/lucas-campagna/mt5linux/releases/download/server-1.1.1/mt5server.exe -O mt5server.exe
+
+COPY mt5-entrypoint.sh /opt/mt5/entrypoint.sh
+RUN chmod +x /opt/mt5/entrypoint.sh
+
+EXPOSE 18812 5900
+CMD ["/opt/mt5/entrypoint.sh"]

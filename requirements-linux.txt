@@ -1,0 +1,17 @@
+# For the Linux-side bot/dashboard container - requirements.txt is a raw
+# Windows/conda environment export (file:///C:/... paths) and won't install
+# here. ML/data libraries below are pinned to the exact versions in that
+# export (not just "recent") - joblib.load() on the .pkl models can fail
+# or silently behave differently across xgboost/scikit-learn/numpy minor
+# versions, and that's not a risk worth taking against a live account.
+# Flask only serves the read-only dashboard - it never touches predictions,
+# so it isn't version-critical the same way.
+pandas==2.3.2
+numpy==2.3.3
+ta==0.11.0
+xgboost==3.2.0
+scikit-learn==1.7.2
+joblib==1.5.2
+python-dotenv>=1.0
+mt5linux>=0.1.9
+flask>=3.0

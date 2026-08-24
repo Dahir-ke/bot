@@ -1,0 +1,56 @@
+# Trading bot stack - Wine-hosted Exness MT5 terminal + the mt5linux
+# bridge, the bot process itself, and a read-only dashboard. Fully
+# isolated from every other stack on this VPS (its own directory, its own
+# image names) and never routed through the shared nginx proxy - the
+# dashboard and VNC debug port are reachable only via 127.0.0.1, tunneled
+# over SSH, never the public internet, since both can show real account
+# data. See DEPLOY_CONTABO.md in this repo for the full setup/verification
+# walkthrough.
+services:
+  mt5:
+    build:
+      context: .
+      dockerfile: Dockerfile.mt5
+    image: trading-bot-mt5:latest
+    restart: unless-stopped
+    # VNC is debug-only and off unless VNC_PASSWORD is set (see
+    # mt5-entrypoint.sh) - bound to 127.0.0.1 here regardless, so even
+    # enabled it's never reachable except via an SSH tunnel.
+    ports:
+      - "127.0.0.1:8801:5900"
+    # Wine/X11 apps want more than Docker's tiny 64MB default shm.
+    shm_size: "512m"
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    image: trading-bot-app:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      BOT_DATA_DIR: /app/data
+      MT5_BRIDGE_HOST: mt5
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - mt5
+    # Deliberately idle on deploy - the trading loop is started manually
+    # (docker compose exec bot python bo.py) once everything's been
+    # verified, not automatically. See DEPLOY_CONTABO.md.
+    command: ["sleep", "infinity"]
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    image: trading-bot-app:latest
+    restart: unless-stopped
+    environment:
+      BOT_DATA_DIR: /app/data
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "127.0.0.1:8800:5000"
+    command: ["python", "dashboard_server.py"]

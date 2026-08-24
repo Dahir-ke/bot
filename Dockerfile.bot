@@ -1,0 +1,17 @@
+# Runs on the real Linux Python (not Wine) - the bot/dashboard talk to the
+# mt5 service's mt5linux bridge over the docker-compose network, never to
+# Wine directly. Serves both the bot process and the read-only dashboard;
+# which one a container actually runs is decided by docker-compose.yml's
+# per-service `command:`, not by this image.
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements-linux.txt .
+RUN pip install --no-cache-dir -r requirements-linux.txt
+
+COPY bo.py bot.py bot_status.py dashboard_server.py ./
+COPY templates/ ./templates/
+COPY *.pkl ./
+
+CMD ["sleep", "infinity"]

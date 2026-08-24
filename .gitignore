@@ -4,3 +4,7 @@ status.json.tmp
 trades.jsonl
 equity_curve.jsonl
 __pycache__/
+
+# Docker deployment (see docker-compose.yml) - the mt5/bot/dashboard
+# containers' runtime state, never source.
+data/

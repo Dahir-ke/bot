@@ -10,7 +10,7 @@ import os
 
 from flask import Flask, jsonify, render_template
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.environ.get("BOT_DATA_DIR", os.path.dirname(os.path.abspath(__file__)))
 STATUS_FILE = os.path.join(BASE_DIR, "status.json")
 TRADES_FILE = os.path.join(BASE_DIR, "trades.jsonl")
 EQUITY_FILE = os.path.join(BASE_DIR, "equity_curve.jsonl")

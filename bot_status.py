@@ -7,7 +7,11 @@ import threading
 from datetime import datetime, timezone
 
 _LOCK = threading.Lock()
-_DIR = os.path.dirname(os.path.abspath(__file__))
+# Defaults to next to this file (unchanged local behavior) - the Docker
+# deployment overrides this to a directory shared (bind-mounted) with the
+# separate dashboard container, since bot.py/bo.py and dashboard_server.py
+# run as two different containers there, not two processes on one machine.
+_DIR = os.environ.get("BOT_DATA_DIR", os.path.dirname(os.path.abspath(__file__)))
 STATUS_FILE = os.path.join(_DIR, "status.json")
 TRADES_FILE = os.path.join(_DIR, "trades.jsonl")
 EQUITY_FILE = os.path.join(_DIR, "equity_curve.jsonl")
