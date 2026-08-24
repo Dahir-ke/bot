@@ -10,9 +10,10 @@ debug access. See `docker-compose.yml` for the full reasoning.
 below build and verify the MT5 connection but never start the actual
 trading loop - that's a separate, explicit, manual step (step 6).
 
-**Only `bo.py` gets run.** `bot.py` is the older v6.4.0 variant, kept in
-the repo for reference/comparison, but nothing here starts it - every
-command below is `bo.py` specifically, not "bo.py or bot.py".
+**Only `final_bot.py` (v8.0.0) gets run.** `bo.py` (v6.6.0) and `bot.py`
+(v6.4.0) are older variants, kept in the repo for reference/comparison,
+but nothing here starts either of them - every command below is
+`final_bot.py` specifically.
 
 ## 1. Get the code onto the VPS
 
@@ -81,8 +82,10 @@ ok = mt5.initialize(
     login=int(os.environ['MT5_LOGIN']),
     password=os.environ['MT5_PASSWORD'],
     server=os.environ['MT5_SERVER'],
+    path=r'C:\Program Files\MetaTrader 5 EXNESS\terminal64.exe',
 )
 print('initialize():', ok)
+print('last_error():', mt5.last_error())
 print('account_info():', mt5.account_info())
 print('terminal_info():', mt5.terminal_info())
 mt5.shutdown()
@@ -91,7 +94,10 @@ mt5.shutdown()
 
 `account_info()` returning real balance/equity/leverage confirms the
 terminal launched, logged in, and the bridge works end to end - all
-without `bo.py` (and therefore no trading logic) ever running.
+without `final_bot.py` (and therefore no trading logic) ever running.
+The explicit `path=` is required - without it `initialize()` fails with
+`-10003 "MetaTrader 5 x64 not found"` against this broker-branded
+install (confirmed by hand).
 
 If this fails, check `docker compose logs mt5` first. Optional: enable
 VNC to see the terminal's own window (`VNC_PASSWORD=<something>` in
@@ -138,17 +144,23 @@ trades:
 
 ```bash
 docker compose up -d bot   # brings the container up idle (sleep infinity)
-docker compose exec -d bot python bo.py   # starts the trading loop
+docker compose exec -d bot python final_bot.py   # starts the trading loop
 docker compose logs -f bot
 ```
 
 `-d` on `exec` runs it detached so it survives your SSH session ending;
 drop it to watch the first few minutes live before backgrounding it.
 
+First run trains BUY/SELL models from scratch for every symbol (walk-
+forward CV, no pretrained models ship in the image) - expect it to take
+noticeably longer than a warm start before the execution loop begins.
+Trained models persist under `BOT_DATA_DIR` (the bind-mounted `./data`
+volume), so this cost is paid once, not on every restart.
+
 To stop trading:
 
 ```bash
-docker compose exec bot pkill -f bo.py
+docker compose exec bot pkill -f final_bot.py
 ```
 
 The container itself stays up (still `sleep infinity`'d) either way -

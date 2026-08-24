@@ -19,7 +19,7 @@ COPY requirements-linux.txt .
 RUN pip install --no-cache-dir --no-deps mt5linux==0.2.4 \
     && pip install --no-cache-dir -r requirements-linux.txt
 
-COPY bo.py bot.py bot_status.py dashboard_server.py ./
+COPY bo.py bot.py final_bot.py bot_status.py dashboard_server.py ./
 COPY templates/ ./templates/
 COPY *.pkl ./
 

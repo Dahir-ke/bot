@@ -5,6 +5,14 @@ trades.jsonl
 equity_curve.jsonl
 __pycache__/
 
+# final_bot.py (v8) runtime state - trained live on the VPS via the
+# bind-mounted data volume (see BOT_DATA_DIR in docker-compose.yml),
+# never shipped in the image or committed, unlike bo.py's pretrained
+# _v66.pkl files.
+trading_bot_v8.db
+trading_bot_v8.log
+models_v8/
+
 # Docker deployment (see docker-compose.yml) - the mt5/bot/dashboard
 # containers' runtime state, never source.
 data/

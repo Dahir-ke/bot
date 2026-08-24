@@ -44,8 +44,10 @@ services:
     depends_on:
       - mt5
     # Deliberately idle on deploy - the trading loop is started manually
-    # (docker compose exec bot python bo.py) once everything's been
-    # verified, not automatically. See DEPLOY_CONTABO.md.
+    # (docker compose exec bot python final_bot.py) once everything's
+    # been verified, not automatically. See DEPLOY_CONTABO.md. bo.py/
+    # bot.py stay in the image for reference only - final_bot.py (v8) is
+    # the one script this ever runs.
     command: ["sleep", "infinity"]
 
   dashboard:
