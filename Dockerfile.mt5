@@ -39,7 +39,15 @@ RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-in
     # a Wine regression in the newest release - a commonly-cited fix in
     # the MT5-under-Wine community is pinning an older Wine version
     # rather than latest-stable.
-    && apt-get install -y --no-install-recommends --install-recommends winehq-stable=10.0.0.0~noble-1 \
+    # winehq-stable's own version pin alone isn't enough - apt won't
+    # resolve the rest of the dependency chain on its own (confirmed by
+    # hand: "Depends: wine-stable (= 10.0.0.0~noble-1)" unmet, build
+    # failed). Every package in the chain needs the same explicit pin.
+    && apt-get install -y --no-install-recommends --install-recommends \
+         winehq-stable=10.0.0.0~noble-1 \
+         wine-stable=10.0.0.0~noble-1 \
+         wine-stable-amd64=10.0.0.0~noble-1 \
+         wine-stable-i386=10.0.0.0~noble-1 \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 
