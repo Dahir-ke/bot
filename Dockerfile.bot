@@ -3,7 +3,12 @@
 # Wine directly. Serves both the bot process and the read-only dashboard;
 # which one a container actually runs is decided by docker-compose.yml's
 # per-service `command:`, not by this image.
-FROM python:3.11-slim
+#
+# 3.12, not 3.11 - mt5linux 1.1.1's own source uses multi-line/nested
+# f-string expressions (PEP 701), which don't even parse on 3.11
+# ("SyntaxError: unterminated string literal" at import time, confirmed
+# by hand against the actual installed package).
+FROM python:3.12-slim
 
 WORKDIR /app
 
