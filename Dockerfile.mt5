@@ -35,17 +35,20 @@ RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-in
 
 WORKDIR /opt/mt5
 
-# xvfb-run (not a hand-rolled `Xvfb & sleep N` - see git history for why
-# that failed twice: a stale /tmp/.X??-lock baked into an earlier layer
-# made a later Xvfb silently fail to bind, wine got no real display, and
-# the installer exited 0 without installing anything) - it allocates a
-# free display number itself and cleans up after, so it can't collide
-# with anything left over from a previous RUN's already-committed layer.
+# Each RUN step below uses its own display number (:99, :98) rather than
+# reusing one - a stale /tmp/.X99-lock left behind by an earlier,
+# already-committed layer made a later Xvfb silently fail to bind, wine
+# got no real display, and the installer exited 0 without installing
+# anything (xvfb-run's own auto-allocated display made this worse, not
+# better - it crashed outright partway through with "XIO: fatal IO error
+# 2", diagnosed by hand and not worth carrying forward). Distinct
+# per-step display numbers sidestep this class of bug entirely rather
+# than depending on cleanup being perfect.
 #
 # Boots the Wine prefix once at build time (registry init, first-launch
 # housekeeping) so container startup doesn't pay that cost on every restart.
-RUN xvfb-run --server-args="-screen 0 1024x768x16" wineboot --init \
-    && wineserver -w
+RUN Xvfb :99 -screen 0 1024x768x16 & \
+    sleep 3 && DISPLAY=:99 wineboot --init && wineserver -w
 
 # The broker-branded MT5 terminal - official MetaQuotes CDN, the same
 # infrastructure every broker's build is served from (verified reachable
@@ -53,8 +56,19 @@ RUN xvfb-run --server-args="-screen 0 1024x768x16" wineboot --init \
 # unattended-install flag. Installing it (not just downloading) registers
 # it in the Wine registry so mt5.initialize() can auto-detect it later
 # with no explicit path.
+#
+# mt5setup.exe is a ~5MB web-installer stub, not the full ~30MB+ terminal
+# - it downloads the real thing itself during install. Confirmed by hand
+# (see git history) that it reliably exits 1 under Wine/Xvfb even on a
+# fully successful install (looks like a failed attempt to auto-launch
+# the newly-installed terminal afterward, not an install failure) - `;
+# true` stops that from aborting this RUN before the real check below
+# ever runs; terminal64.exe actually existing is the only signal that
+# matters.
 RUN wget -q https://download.mql5.com/cdn/web/exness.technologies.ltd/mt5/exness5setup.exe -O mt5setup.exe \
-    && xvfb-run --server-args="-screen 0 1024x768x16" wine mt5setup.exe /auto \
+    && (Xvfb :98 -screen 0 1024x768x16 &) \
+    && sleep 3 \
+    && DISPLAY=:98 wine mt5setup.exe /auto; true \
     && sleep 5 && wineserver -w \
     && rm mt5setup.exe \
     && found=$(find "$WINEPREFIX/drive_c" -iname "terminal64.exe" -print -quit) \
