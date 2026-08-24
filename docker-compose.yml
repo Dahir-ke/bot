@@ -12,6 +12,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.mt5
+      # `build.shm_size` (not just the top-level one below) - Xvfb crashed
+      # mid-build with "XIO: fatal IO error 2" the first time this was
+      # tried, which cost the whole layer. The top-level shm_size only
+      # applies once the container is actually running; build-time RUN
+      # steps get Docker's tiny 64MB default unless it's set here too.
+      shm_size: "512m"
     image: trading-bot-mt5:latest
     restart: unless-stopped
     # VNC is debug-only and off unless VNC_PASSWORD is set (see
