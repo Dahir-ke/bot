@@ -21,6 +21,18 @@ rm -f /tmp/.X99-lock
 Xvfb :99 -screen 0 1024x768x16 &
 sleep 3
 
+# Bare Xvfb has no window manager - confirmed by hand that without one,
+# mt5.initialize() reliably times out with -10005 "IPC timeout" even
+# though the terminal fully launches, connects, and streams live quotes
+# (checked via VNC). The real MetaTrader5 package's Python-API handshake
+# is implemented with Windows message-passing between hidden windows,
+# which needs something pumping/dispatching those messages the way a
+# window manager normally does - bare Xvfb just hosts the X server, it
+# doesn't do that. icewm is a minimal WM added purely to make that
+# message-passing work, not for any visible UI purpose here.
+icewm &
+sleep 2
+
 # Debug-only VNC, off by default. Even when enabled it's bound to all
 # interfaces *inside this container* only - docker-compose.yml maps the
 # port to 127.0.0.1 on the host, so it's only ever reachable via an SSH

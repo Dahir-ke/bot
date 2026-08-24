@@ -24,12 +24,22 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-install-recommends \
       wget gnupg2 ca-certificates \
-      xvfb x11vnc \
+      xvfb x11vnc icewm \
     && mkdir -pm755 /etc/apt/keyrings \
     && wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key \
     && wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/noble/winehq-noble.sources \
     && apt-get update \
-    && apt-get install -y --no-install-recommends --install-recommends winehq-stable \
+    # Pinned to 10.0.0.0, not latest (11.0.0.0) - confirmed by hand that
+    # 11.0 installs and runs the terminal fully (renders, streams live
+    # quotes) but mt5.initialize()'s login handshake never reaches the
+    # terminal at all: "MCP started on 127.0.0.1:22346" logs, then
+    # nothing else, ever, across multiple fresh launches and timeouts up
+    # to 180s. That's consistent with MetaTrader5's private IPC layer
+    # (undocumented, relies on Windows-internal message-passing) hitting
+    # a Wine regression in the newest release - a commonly-cited fix in
+    # the MT5-under-Wine community is pinning an older Wine version
+    # rather than latest-stable.
+    && apt-get install -y --no-install-recommends --install-recommends winehq-stable=10.0.0.0~noble-1 \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 
