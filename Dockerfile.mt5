@@ -126,23 +126,30 @@ RUN wget -q https://download.mql5.com/cdn/web/exness.technologies.ltd/mt5/exness
 # Genuine Windows Python under Wine, not a prebuilt binary. 3.12.7 -
 # officially supported by both the current MetaTrader5 PyPI package
 # and rpyc.
+# InstallAllUsers=1 always lands the real interpreter at this exact
+# path - not discovered via `find`, which also matches the venv-
+# template stub the installer ships at
+# Lib/venv/scripts/nt/python.exe (errors with "No pyvenv.cfg file" if
+# actually run - confirmed by hand that `find ... -print -quit` can
+# grab that one instead of the real interpreter, since both match
+# "python.exe" under a Python312 path).
+ENV WINE_PYTHON="C:\Program Files\Python312\python.exe"
+
 RUN wget -q https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe -O python-installer.exe \
     && (Xvfb :96 -screen 0 1024x768x16 &) \
     && sleep 3 \
     && DISPLAY=:96 wine python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0; true \
     && sleep 5 && wineserver -w \
     && rm python-installer.exe \
-    && found=$(find "$WINEPREFIX/drive_c" -iname "python.exe" -print -quit) \
-    && test -n "$found" \
-    && echo "Wine Python installed OK at: $found"
+    && test -f "$WINEPREFIX/drive_c/Program Files/Python312/python.exe" \
+    && echo "Wine Python installed OK at: $WINEPREFIX/drive_c/Program Files/Python312/python.exe"
 
 # rpyc>=6.0.0,<7 - matches the pin already forced on the bot side (see
 # requirements-linux.txt) for mt5linux==0.2.4's classic-RPyC client;
 # both ends need the same major RPyC wire-protocol version.
-RUN PYEXE=$(find "$WINEPREFIX/drive_c" -iname "python.exe" -path "*Python312*" -print -quit) \
-    && (Xvfb :95 -screen 0 1024x768x16 &) \
+RUN (Xvfb :95 -screen 0 1024x768x16 &) \
     && sleep 3 \
-    && DISPLAY=:95 wine "$PYEXE" -m pip install --no-cache-dir MetaTrader5 "rpyc>=6.0.0,<7" \
+    && DISPLAY=:95 wine "$WINE_PYTHON" -m pip install --no-cache-dir MetaTrader5 "rpyc>=6.0.0,<7" \
     && wineserver -w
 
 COPY mt5_server.py /opt/mt5/mt5_server.py

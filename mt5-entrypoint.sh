@@ -52,5 +52,4 @@ echo "Starting MT5 RPyC bridge on :18812..."
 # - :18812 is never published to the host in docker-compose.yml, so
 # only containers already inside this same compose project's network
 # can reach it - never the host, never the internet.
-PYEXE="$WINEPREFIX/drive_c/Program Files/Python312/python.exe"
-wine "$PYEXE" Z:/opt/mt5/mt5_server.py 18812
+wine "$WINE_PYTHON" Z:/opt/mt5/mt5_server.py 18812
