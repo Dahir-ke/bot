@@ -15,12 +15,12 @@ ENV DEBIAN_FRONTEND=noninteractive \
     WINEARCH=win64 \
     WINEPREFIX=/root/.wine \
     WINEDEBUG=-all \
-    DISPLAY=:99 \
     # Disables Wine's built-in Mono/Gecko installer prompts (.NET and
     # embedded-browser support neither MT5 nor mt5server.exe need) - left
     # enabled, the first wineboot in a headless container with no way to
     # click through a dialog hangs for minutes before failing outright.
-    WINEDLLOVERRIDES="mscoree=;mshtml="
+    WINEDLLOVERRIDES="mscoree=;mshtml=" \
+    XDG_RUNTIME_DIR=/tmp/xdg-runtime
 
 RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-install-recommends \
       wget gnupg2 ca-certificates \
@@ -30,14 +30,22 @@ RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-in
     && wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/noble/winehq-noble.sources \
     && apt-get update \
     && apt-get install -y --no-install-recommends --install-recommends winehq-stable \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 
 WORKDIR /opt/mt5
 
+# xvfb-run (not a hand-rolled `Xvfb & sleep N` - see git history for why
+# that failed twice: a stale /tmp/.X??-lock baked into an earlier layer
+# made a later Xvfb silently fail to bind, wine got no real display, and
+# the installer exited 0 without installing anything) - it allocates a
+# free display number itself and cleans up after, so it can't collide
+# with anything left over from a previous RUN's already-committed layer.
+#
 # Boots the Wine prefix once at build time (registry init, first-launch
 # housekeeping) so container startup doesn't pay that cost on every restart.
-RUN (Xvfb :99 -screen 0 1024x768x16 &) \
-    && sleep 3 && wineboot --init && sleep 5 && wineserver -w
+RUN xvfb-run --server-args="-screen 0 1024x768x16" wineboot --init \
+    && wineserver -w
 
 # The broker-branded MT5 terminal - official MetaQuotes CDN, the same
 # infrastructure every broker's build is served from (verified reachable
@@ -46,11 +54,12 @@ RUN (Xvfb :99 -screen 0 1024x768x16 &) \
 # it in the Wine registry so mt5.initialize() can auto-detect it later
 # with no explicit path.
 RUN wget -q https://download.mql5.com/cdn/web/exness.technologies.ltd/mt5/exness5setup.exe -O mt5setup.exe \
-    && (Xvfb :99 -screen 0 1024x768x16 &) \
-    && sleep 3 \
-    && wine mt5setup.exe /auto \
-    && sleep 20 && wineserver -k && sleep 2 \
-    && rm mt5setup.exe
+    && xvfb-run --server-args="-screen 0 1024x768x16" wine mt5setup.exe /auto \
+    && sleep 5 && wineserver -w \
+    && rm mt5setup.exe \
+    && found=$(find "$WINEPREFIX/drive_c" -iname "terminal64.exe" -print -quit) \
+    && test -n "$found" \
+    && echo "MT5 terminal installed OK at: $found"
 
 # Pinned release, not "latest" - a future release can't silently change
 # what's running against a live account without a deliberate version bump.
