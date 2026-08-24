@@ -33,6 +33,7 @@ console.setLevel(logging.INFO)
 logging.getLogger().addHandler(console)
 
 # ====================== CROSS-PLATFORM MT5 ======================
+MT5_TERMINAL_PATH = None
 if platform.system() == "Windows":
     import MetaTrader5 as mt5
     logging.info("Running on Windows")
@@ -44,6 +45,14 @@ else:
     mt5 = MetaTrader5(
         host=os.environ.get("MT5_BRIDGE_HOST", "localhost"),
         port=int(os.environ.get("MT5_BRIDGE_PORT", "18812")),
+    )
+    # initialize()'s auto-detect (no path=) looks for a default-named
+    # "MetaTrader 5" install and fails with -10003 "MetaTrader 5 x64 not
+    # found" against a broker-branded one - confirmed by hand against the
+    # actual Wine install at this path. Windows-side path as Wine sees it,
+    # not the Linux /root/.wine/... path the host filesystem uses.
+    MT5_TERMINAL_PATH = os.environ.get(
+        "MT5_TERMINAL_PATH", r"C:\Program Files\MetaTrader 5 EXNESS\terminal64.exe"
     )
     logging.info("Running on Linux with mt5linux")
 
@@ -252,7 +261,10 @@ def run_bot():
     global daily_start_equity, last_date_reset
     logging.info("=== SAFE BOT v6.4.0 STARTED ===")
 
-    if not mt5.initialize(login=MT5_LOGIN, password=MT5_PASSWORD, server=MT5_SERVER):
+    init_kwargs = dict(login=MT5_LOGIN, password=MT5_PASSWORD, server=MT5_SERVER)
+    if MT5_TERMINAL_PATH:
+        init_kwargs["path"] = MT5_TERMINAL_PATH
+    if not mt5.initialize(**init_kwargs):
         logging.error(f"MT5 login failed: {mt5.last_error()}")
         return
 

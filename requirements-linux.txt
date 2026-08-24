@@ -22,5 +22,16 @@ python-dotenv>=1.0
 # simple MetaTrader5(host=, port=) that bo.py/bot.py are written against -
 # it just connects over RPyC to the mt5 service's already-running
 # mt5server.exe, no container management of its own.
-mt5linux==0.2.4
+# mt5linux==0.2.4 is deliberately NOT listed here - it pins rpyc==5.2.3,
+# but the mt5server.exe binary it talks to (built from mt5linux's 1.1.1
+# release, the only prebuilt server available) requires rpyc>=6.0.0,<7,
+# confirmed via PyPI's own metadata for that release. Different major
+# RPyC wire/brine protocol versions aren't compatible - without the
+# override below, every call raised "ValueError: not enough values to
+# unpack (expected 3, got 0)" in rpyc's brine.load(). Listing both in
+# one file makes pip's resolver reject them together
+# (ResolutionImpossible, confirmed by hand), so Dockerfile.bot installs
+# mt5linux separately with --no-deps first, then this file's rpyc pin
+# applies on top without pip trying to walk it back to 5.2.3.
+rpyc>=6.0.0,<7
 flask>=3.0

@@ -13,7 +13,11 @@ FROM python:3.12-slim
 WORKDIR /app
 
 COPY requirements-linux.txt .
-RUN pip install --no-cache-dir -r requirements-linux.txt
+# mt5linux installed separately with --no-deps, before the rest of the
+# file - see requirements-linux.txt for why (its rpyc==5.2.3 pin
+# conflicts with the rpyc>=6.0.0,<7 that mt5server.exe actually needs).
+RUN pip install --no-cache-dir --no-deps mt5linux==0.2.4 \
+    && pip install --no-cache-dir -r requirements-linux.txt
 
 COPY bo.py bot.py bot_status.py dashboard_server.py ./
 COPY templates/ ./templates/
