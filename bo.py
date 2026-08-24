@@ -16,6 +16,10 @@ import numpy as np
 import ta
 import xgboost as xgb
 from sklearn.preprocessing import StandardScaler
+from dotenv import load_dotenv
+import bot_status as status
+
+load_dotenv()
 
 # ====================== MT5 LINUX/WINDOWS ======================
 if platform.system() == "Windows":
@@ -35,9 +39,9 @@ ORDER_FILLING_IOC = 1
 MAGIC_NUMBER = 20240601
 
 # ====================== CONFIG ======================
-MT5_LOGIN = 435112321          # <-- your demo login
-MT5_PASSWORD = "Dahir@2036"  # <-- CHANGE THIS
-MT5_SERVER = "ExnessKE-MT5Trial9"
+MT5_LOGIN = int(os.environ["MT5_LOGIN"])
+MT5_PASSWORD = os.environ["MT5_PASSWORD"]
+MT5_SERVER = os.environ["MT5_SERVER"]
 
 # Full symbol list (added all pairs from your request)
 SYMBOLS = [
@@ -250,9 +254,13 @@ def execute_trade(signal, atr, prob, symbol, h1_trend):
     if result and result.retcode == 10009:
         logging.info(f"✅ {signal} {symbol} | Lot {lot} | Prob {prob:.1%} | H1 trend: {'UP' if h1_trend==1 else 'DOWN'}")
         last_trade_time[symbol] = datetime.now(timezone.utc)
+        status.log_trade(event="OPEN", symbol=symbol, side=signal, lot=lot, price=price,
+                          sl=sl, tp=tp, prob=prob, h1_trend=h1_trend)
     else:
         err = result.comment if result else "Unknown"
-        logging.error(f"Trade failed {symbol}: {err} (code={result.retcode if result else 'None'})")
+        retcode = result.retcode if result else None
+        logging.error(f"Trade failed {symbol}: {err} (code={retcode})")
+        status.log_trade(event="FAILED", symbol=symbol, side=signal, prob=prob, error=err, retcode=retcode)
 
 # ====================== MAIN ======================
 def run_bot():
@@ -281,28 +289,54 @@ def run_bot():
     while True:
         try:
             reset_daily_equity_if_needed()
+            account = mt5.account_info()
             daily_loss = get_daily_loss()
             if daily_loss > MAX_DAILY_LOSS_PERCENT:
                 logging.warning(f"Daily loss {daily_loss:.1f}% > limit. Sleeping 1 hour.")
+                status.write_status(
+                    equity=account.equity if account else None,
+                    balance=account.balance if account else None,
+                    daily_loss_pct=daily_loss,
+                    daily_loss_limit=MAX_DAILY_LOSS_PERCENT,
+                    paused=True,
+                    bot_version="v6.6.0",
+                    confidence_threshold=CONFIDENCE_THRESHOLD,
+                    symbols=SYMBOLS,
+                )
                 time.sleep(3600)
                 continue
+
+            signals_snapshot = {}
 
             for symbol in SYMBOLS:
                 if symbol not in models:
                     continue
-                if has_open_position(symbol) or is_on_cooldown(symbol):
+
+                pos_open = has_open_position(symbol)
+                cooldown = is_on_cooldown(symbol)
+                sig_entry = {"position_open": pos_open, "cooldown": cooldown}
+
+                if pos_open or cooldown:
+                    signals_snapshot[symbol] = sig_entry
                     continue
 
                 # Get H1 trend first
                 h1_trend = get_h1_trend(symbol)
+                sig_entry["h1_trend"] = h1_trend
                 if h1_trend == 0:
+                    sig_entry["skip_reason"] = "no_h1_trend"
+                    signals_snapshot[symbol] = sig_entry
                     continue   # no clear H1 trend, skip
 
                 df = get_data(symbol, TIMEFRAME_M5)
                 if df is None:
+                    sig_entry["skip_reason"] = "no_data"
+                    signals_snapshot[symbol] = sig_entry
                     continue
                 df = add_features(df)
                 if df is None or len(df) < 2:
+                    sig_entry["skip_reason"] = "no_data"
+                    signals_snapshot[symbol] = sig_entry
                     continue
 
                 # Extract last row features
@@ -310,21 +344,31 @@ def run_bot():
                 atr = last['atr']
                 rsi = last['rsi']
                 adx = last['adx']
+                sig_entry["atr"] = float(atr)
+                sig_entry["rsi"] = float(rsi)
+                sig_entry["adx"] = float(adx)
 
                 # Strict filters
                 if atr < MIN_ATR_PIPS:
                     logging.debug(f"{symbol} ATR too low ({atr:.2f}) → skip")
+                    sig_entry["skip_reason"] = "atr_too_low"
+                    signals_snapshot[symbol] = sig_entry
                     continue
                 if adx < MIN_ADX:
                     logging.debug(f"{symbol} ADX weak ({adx:.1f}) → skip")
+                    sig_entry["skip_reason"] = "adx_weak"
+                    signals_snapshot[symbol] = sig_entry
                     continue
                 if rsi > MAX_RSI or rsi < MIN_RSI:
                     logging.debug(f"{symbol} RSI extreme ({rsi:.1f}) → skip")
+                    sig_entry["skip_reason"] = "rsi_extreme"
+                    signals_snapshot[symbol] = sig_entry
                     continue
 
                 model, scaler, feats = models[symbol]
                 latest = scaler.transform(df[feats].iloc[-1:])
                 prob = model.predict_proba(latest)[0][1]
+                sig_entry["prob"] = float(prob)
 
                 # Determine signal (stricter threshold)
                 if prob >= CONFIDENCE_THRESHOLD:
@@ -332,9 +376,42 @@ def run_bot():
                 elif prob <= (1 - CONFIDENCE_THRESHOLD):
                     signal = "SELL"
                 else:
-                    continue
+                    signal = None
 
-                execute_trade(signal, atr, prob, symbol, h1_trend)
+                sig_entry["signal"] = signal
+                signals_snapshot[symbol] = sig_entry
+
+                if signal:
+                    execute_trade(signal, atr, prob, symbol, h1_trend)
+
+            positions_snapshot = []
+            for symbol in SYMBOLS:
+                for p in (mt5.positions_get(symbol=symbol) or []):
+                    if p.magic == MAGIC_NUMBER:
+                        positions_snapshot.append({
+                            "symbol": symbol,
+                            "side": "BUY" if p.type == ORDER_TYPE_BUY else "SELL",
+                            "volume": p.volume,
+                            "price_open": p.price_open,
+                            "sl": p.sl,
+                            "tp": p.tp,
+                            "profit": p.profit,
+                        })
+
+            status.write_status(
+                equity=account.equity if account else None,
+                balance=account.balance if account else None,
+                daily_loss_pct=daily_loss,
+                daily_loss_limit=MAX_DAILY_LOSS_PERCENT,
+                paused=False,
+                positions=positions_snapshot,
+                signals=signals_snapshot,
+                bot_version="v6.6.0",
+                confidence_threshold=CONFIDENCE_THRESHOLD,
+                symbols=SYMBOLS,
+            )
+            if account:
+                status.log_equity_point(account.equity, account.balance)
 
             time.sleep(60)
         except Exception as e:

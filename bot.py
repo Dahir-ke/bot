@@ -16,6 +16,10 @@ import numpy as np
 import ta
 import xgboost as xgb
 from sklearn.preprocessing import StandardScaler
+from dotenv import load_dotenv
+import bot_status as status
+
+load_dotenv()
 
 # ====================== LOGGING ======================
 logging.basicConfig(
@@ -47,9 +51,9 @@ ORDER_FILLING_IOC = 1
 MAGIC_NUMBER      = 20240601
 
 # ====================== CONFIG ======================
-MT5_LOGIN = 435112321
-MT5_PASSWORD = "Dahir@2036"
-MT5_SERVER = "ExnessKE-MT5Trial9"
+MT5_LOGIN = int(os.environ["MT5_LOGIN"])
+MT5_PASSWORD = os.environ["MT5_PASSWORD"]
+MT5_SERVER = os.environ["MT5_SERVER"]
 
 SYMBOLS = ["EURUSDm", "USDJPYm", "XAUUSDm", "UKOILm", "USOILm", "XNGUSDm",
            "AUDCADm", "AUDCHFm", "AUDJPYm"]
@@ -229,8 +233,13 @@ def execute_trade(signal, atr, prob, symbol):
         risk_usd = lot * (1.8 * atr) * info.trade_tick_value
         logging.info(f"✅ TRADE OPENED → {signal} {symbol} | Lot {lot} | Risk ${risk_usd:.2f} ({MAX_RISK_PERCENT*100:.1f}% of equity)")
         last_trade_time[symbol] = datetime.now(timezone.utc)
+        status.log_trade(event="OPEN", symbol=symbol, side=signal, lot=lot, price=price,
+                          sl=sl, tp=tp, prob=prob, risk_usd=risk_usd)
     else:
-        logging.error(f"Trade failed on {symbol}: {result.comment if result else 'Unknown'} (retcode={result.retcode if result else 'None'})")
+        err = result.comment if result else "Unknown"
+        retcode = result.retcode if result else None
+        logging.error(f"Trade failed on {symbol}: {err} (retcode={retcode})")
+        status.log_trade(event="FAILED", symbol=symbol, side=signal, prob=prob, error=err, retcode=retcode)
 
 # ====================== MAIN ======================
 def run_bot():
@@ -261,20 +270,40 @@ def run_bot():
             # Reset daily equity at start of new UTC day
             reset_daily_equity_if_needed()
 
+            account = mt5.account_info()
             daily_loss = get_daily_loss()
             if daily_loss > MAX_DAILY_LOSS_PERCENT:
                 logging.warning(f"DAILY LOSS LIMIT HIT ({daily_loss:.1f}%) → Pausing 1 hour")
+                status.write_status(
+                    equity=account.equity if account else None,
+                    balance=account.balance if account else None,
+                    daily_loss_pct=daily_loss,
+                    daily_loss_limit=MAX_DAILY_LOSS_PERCENT,
+                    paused=True,
+                    bot_version="v6.4.0",
+                    confidence_threshold=CONFIDENCE_THRESHOLD,
+                    symbols=SYMBOLS,
+                )
                 time.sleep(3600)
                 continue
+
+            signals_snapshot = {}
 
             for symbol in SYMBOLS:
                 if symbol not in models:
                     continue
-                if has_open_position(symbol) or is_on_cooldown(symbol):
+
+                pos_open = has_open_position(symbol)
+                cooldown = is_on_cooldown(symbol)
+                sig_entry = {"position_open": pos_open, "cooldown": cooldown}
+
+                if pos_open or cooldown:
+                    signals_snapshot[symbol] = sig_entry
                     continue
 
                 df = get_data(symbol)
                 if df is None:
+                    signals_snapshot[symbol] = sig_entry
                     continue
                 df = add_features(df)
 
@@ -283,14 +312,50 @@ def run_bot():
                 prob = model.predict_proba(latest)[0][1]
                 atr = df['atr'].iloc[-1]
 
+                sig_entry["prob"] = float(prob)
+                sig_entry["atr"] = float(atr)
+
                 if prob >= CONFIDENCE_THRESHOLD:
                     signal = "BUY"
                 elif prob <= (1 - CONFIDENCE_THRESHOLD):
                     signal = "SELL"
                 else:
-                    continue
+                    signal = None
 
-                execute_trade(signal, atr, prob, symbol)
+                sig_entry["signal"] = signal
+                signals_snapshot[symbol] = sig_entry
+
+                if signal:
+                    execute_trade(signal, atr, prob, symbol)
+
+            positions_snapshot = []
+            for symbol in SYMBOLS:
+                for p in (mt5.positions_get(symbol=symbol) or []):
+                    if p.magic == MAGIC_NUMBER:
+                        positions_snapshot.append({
+                            "symbol": symbol,
+                            "side": "BUY" if p.type == ORDER_TYPE_BUY else "SELL",
+                            "volume": p.volume,
+                            "price_open": p.price_open,
+                            "sl": p.sl,
+                            "tp": p.tp,
+                            "profit": p.profit,
+                        })
+
+            status.write_status(
+                equity=account.equity if account else None,
+                balance=account.balance if account else None,
+                daily_loss_pct=daily_loss,
+                daily_loss_limit=MAX_DAILY_LOSS_PERCENT,
+                paused=False,
+                positions=positions_snapshot,
+                signals=signals_snapshot,
+                bot_version="v6.4.0",
+                confidence_threshold=CONFIDENCE_THRESHOLD,
+                symbols=SYMBOLS,
+            )
+            if account:
+                status.log_equity_point(account.equity, account.balance)
 
             time.sleep(60)
 

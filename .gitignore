@@ -1,0 +1,6 @@
+.env
+status.json
+status.json.tmp
+trades.jsonl
+equity_curve.jsonl
+__pycache__/
