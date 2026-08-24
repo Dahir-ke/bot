@@ -72,12 +72,25 @@ RUN Xvfb :99 -screen 0 1024x768x16 & \
 # Microsoft Edge WebView2 Runtime - MetaQuotes' own installer puts this
 # on every Linux/Wine setup before MT5 itself; same URL their script
 # uses. /silent /install matches their exact invocation, no GUI dialog.
+#
+# `timeout 90` wraps the actual install - confirmed by hand that the
+# bootstrapper's own MicrosoftEdgeUpdate.exe component can hang
+# indefinitely under Wine (ran 10+ minutes with zero CPU/network
+# activity, still not exited when killed - looks like it's stuck on
+# its own update-server handshake, a known rough edge for Microsoft's
+# auto-update services under Wine). The terminal fully rendered,
+# streamed live data, and showed a login dialog in every earlier test
+# today with NO WebView2 present at all, so it's not clearly required
+# for the piece we actually care about - best-effort only, `; true`
+# means a timeout or any other failure here doesn't block the rest of
+# this build.
 RUN wget -q https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/f2910a1e-e5a6-4f17-b52d-7faf525d17f8/MicrosoftEdgeWebview2Setup.exe -O webview2.exe \
     && (Xvfb :97 -screen 0 1024x768x16 &) \
     && sleep 3 \
-    && DISPLAY=:97 wine webview2.exe /silent /install; true \
-    && sleep 5 && wineserver -w \
-    && rm webview2.exe
+    && timeout 90 env DISPLAY=:97 wine webview2.exe /silent /install; true \
+    && pkill -9 -f MicrosoftEdgeUpdate.exe; true \
+    && sleep 3 && wineserver -k; true \
+    && rm -f webview2.exe
 
 # The broker-branded MT5 terminal - official MetaQuotes CDN, the same
 # infrastructure every broker's build is served from (verified reachable
