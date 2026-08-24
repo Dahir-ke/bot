@@ -36,4 +36,12 @@ echo "Starting mt5linux bridge server on :18812..."
 # or crashes the whole container exits cleanly and docker-compose's
 # restart policy brings it back up fresh (new Xvfb, new wine session)
 # instead of leaving an unmanaged wine process running under a dead script.
-wine /opt/mt5/mt5server.exe -p 18812
+#
+# --host 0.0.0.0, not the default localhost - confirmed by hand that the
+# default made this unreachable from the separate `bot` container even
+# over the docker-compose network ("Connection refused" - nothing was
+# listening on any interface but this container's own loopback). Safe to
+# open up: :18812 is never published to the host in docker-compose.yml,
+# so only containers already inside this same compose project's network
+# can reach it - never the host, never the internet.
+wine /opt/mt5/mt5server.exe --host 0.0.0.0 -p 18812

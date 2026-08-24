@@ -13,5 +13,14 @@ xgboost==3.2.0
 scikit-learn==1.7.2
 joblib==1.5.2
 python-dotenv>=1.0
-mt5linux>=0.1.9
+# Pinned exactly, not >= - 1.0+ rewrote MetaTrader5() into a "library-
+# managed container" client (engine='auto'/'docker'/'udocker' - it tries
+# to launch its own Docker container internally, needs a docker socket,
+# and has no plain "connect to an already-running external server" mode
+# at all, confirmed by reading its actual source after it failed with
+# "No container runtime available"). 0.2.4 is the last release with the
+# simple MetaTrader5(host=, port=) that bo.py/bot.py are written against -
+# it just connects over RPyC to the mt5 service's already-running
+# mt5server.exe, no container management of its own.
+mt5linux==0.2.4
 flask>=3.0
