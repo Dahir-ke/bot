@@ -20,6 +20,13 @@ services:
       shm_size: "512m"
     image: trading-bot-mt5:latest
     restart: unless-stopped
+    # Docker drops CAP_SYS_PTRACE by default, so strace inside the
+    # container can't attach to mt5server.exe/terminal64.exe without
+    # this - needed to actually see what the IPC handshake is doing at
+    # the syscall level instead of guessing from black-box symptoms.
+    # Container-scoped only, not a host-level privilege.
+    cap_add:
+      - SYS_PTRACE
     # VNC is debug-only and off unless VNC_PASSWORD is set (see
     # mt5-entrypoint.sh) - bound to 127.0.0.1 here regardless, so even
     # enabled it's never reachable except via an SSH tunnel.
