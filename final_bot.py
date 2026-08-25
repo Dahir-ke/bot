@@ -94,7 +94,22 @@ load_dotenv()
 # MT5 CONNECTION
 # ============================================================
 
-MT5_TERMINAL_PATH = None
+# initialize()'s auto-detect (no path=) looks for a default-named
+# "MetaTrader 5" install and fails with -10003 "MetaTrader 5 x64 not
+# found" against a broker-branded one - true on native Windows too, not
+# just the old Wine path, so this is set unconditionally rather than
+# only in the non-Windows branch below. A whole day of "-10005 IPC
+# timeout" across Wine, Docker, and even a from-scratch bridge turned
+# out to have nothing to do with any of that: the account's server
+# (ExnessKE-MT5Real9) belongs to a distinct, separately-licensed
+# Exness entity ("Exness (KE) Limited") with its own terminal build,
+# installed to this exact path - the generic "MetaTrader 5 EXNESS"
+# terminal silently failed account authorization no matter what it ran
+# on, native Windows included. See exnesske5setup.exe from exness.ke,
+# not the generic exness.com installer, if this ever needs reinstalling.
+MT5_TERMINAL_PATH = os.environ.get(
+    "MT5_TERMINAL_PATH", r"C:\Program Files\ExnessKE MT5 Terminal\terminal64.exe"
+)
 
 if platform.system() == "Windows":
 
@@ -102,20 +117,14 @@ if platform.system() == "Windows":
 
 else:
 
+    # Cross-machine bridge path - not what's actually deployed (the bot
+    # runs directly on the same Windows VPS as the terminal now, no
+    # network hop needed), kept for reference/fallback only.
     from mt5linux import MetaTrader5
 
     mt5 = MetaTrader5(
         host=os.environ.get("MT5_BRIDGE_HOST", "localhost"),
         port=int(os.environ.get("MT5_BRIDGE_PORT", "18812")),
-    )
-
-    # initialize()'s auto-detect (no path=) looks for a default-named
-    # "MetaTrader 5" install and fails with -10003 "MetaTrader 5 x64 not
-    # found" against a broker-branded one - confirmed by hand against the
-    # actual Wine install at this path. Windows-side path as Wine sees it,
-    # not the Linux /root/.wine/... path the host filesystem uses.
-    MT5_TERMINAL_PATH = os.environ.get(
-        "MT5_TERMINAL_PATH", r"C:\Program Files\MetaTrader 5 EXNESS\terminal64.exe"
     )
 
 
@@ -1533,11 +1542,21 @@ def calibrate_model(
 
     try:
 
-        # Newer sklearn
+        # sklearn >=1.6 removed cv="prefit" entirely (silently falling
+        # through to the cv=3 branch below on every single fold - it
+        # doesn't raise until .fit() runs the actual grid, confirmed by
+        # hand: "The 'cv' parameter ... Got 'prefit' instead" fired on
+        # every fold in production, meaning calibration was silently
+        # never using the already-fit model at all). FrozenEstimator is
+        # the current replacement - wraps the pre-fit model so
+        # CalibratedClassifierCV calibrates it directly on X_calib/
+        # y_calib instead of refitting on a 3-way split of that same
+        # already-small calibration slice.
+        from sklearn.frozen import FrozenEstimator
+
         calibrated = CalibratedClassifierCV(
-            model,
+            FrozenEstimator(model),
             method="sigmoid",
-            cv="prefit",
         )
 
         calibrated.fit(
@@ -1550,15 +1569,16 @@ def calibrate_model(
     except Exception as exc:
 
         logging.warning(
-            f"Prefit calibration unavailable: {exc}"
+            f"FrozenEstimator calibration unavailable: {exc}"
         )
 
         try:
 
+            # sklearn <1.6 fallback - the original prefit API.
             calibrated = CalibratedClassifierCV(
                 model,
                 method="sigmoid",
-                cv=3,
+                cv="prefit",
             )
 
             calibrated.fit(
@@ -1571,10 +1591,31 @@ def calibrate_model(
         except Exception as exc2:
 
             logging.warning(
-                f"Calibration failed completely: {exc2}"
+                f"Prefit calibration unavailable: {exc2}"
             )
 
-            return model
+            try:
+
+                calibrated = CalibratedClassifierCV(
+                    model,
+                    method="sigmoid",
+                    cv=3,
+                )
+
+                calibrated.fit(
+                    X_calib,
+                    y_calib,
+                )
+
+                return calibrated
+
+            except Exception as exc3:
+
+                logging.warning(
+                    f"Calibration failed completely: {exc3}"
+                )
+
+                return model
 
 
 # ============================================================
