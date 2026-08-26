@@ -6,53 +6,59 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root {
-    --bg: #0a0e17;
-    --panel: #11161f;
-    --panel-2: #161c28;
-    --border: #232a38;
-    --text: #eef1f6;
-    --muted: #7c8797;
+    --bg: #050a14;
+    --panel: #0a1220;
+    --panel-2: #0e1a2e;
+    --border: #1c2b45;
+    --text: #eaf2ff;
+    --muted: #6b83a8;
     --green: #34d399;
     --red: #f87171;
     --amber: #fbbf24;
-    --blue: #60a5fa;
+    --blue: #3b82f6;
+    --cyan: #22d3ee;
     --purple: #a78bfa;
     --pink: #f472b6;
-    --accent: #818cf8;
-    --radius: 14px;
+    --accent: #22d3ee;
+    --radius: 16px;
   }
   @media (prefers-color-scheme: light) {
     :root:not([data-theme="dark"]) {
-      --bg: #f4f6fb;
+      --bg: #eef2fa;
       --panel: #ffffff;
-      --panel-2: #f0f2f8;
-      --border: #e2e6ef;
-      --text: #1a2233;
-      --muted: #6b7688;
+      --panel-2: #f2f5fb;
+      --border: #dbe4f3;
+      --text: #101828;
+      --muted: #5b6b8c;
     }
   }
   :root[data-theme="light"] {
-    --bg: #f4f6fb;
+    --bg: #eef2fa;
     --panel: #ffffff;
-    --panel-2: #f0f2f8;
-    --border: #e2e6ef;
-    --text: #1a2233;
-    --muted: #6b7688;
+    --panel-2: #f2f5fb;
+    --border: #dbe4f3;
+    --text: #101828;
+    --muted: #5b6b8c;
   }
 
   * { box-sizing: border-box; }
   body {
     margin: 0;
     font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: var(--bg);
+    background:
+      radial-gradient(1200px 500px at 15% -10%, rgba(34,211,238,.08), transparent),
+      radial-gradient(900px 500px at 100% 0%, rgba(167,139,250,.07), transparent),
+      var(--bg);
     color: var(--text);
     display: flex;
     min-height: 100vh;
   }
 
+  .glow { box-shadow: 0 0 0 1px var(--border), 0 10px 30px -18px rgba(34,211,238,.25); }
+
   /* ───────── Sidebar ───────── */
   .sidebar {
-    width: 220px;
+    width: 224px;
     flex-shrink: 0;
     background: var(--panel);
     border-right: 1px solid var(--border);
@@ -70,14 +76,15 @@
     padding: 6px 8px 22px;
   }
   .brand .logo {
-    width: 34px; height: 34px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent), var(--blue));
+    width: 36px; height: 36px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
     display: flex; align-items: center; justify-content: center;
     font-size: 17px;
+    box-shadow: 0 0 18px -3px rgba(34,211,238,.65);
   }
-  .brand .name { font-weight: 700; font-size: 15px; }
-  .brand .name b { color: var(--accent); }
+  .brand .name { font-weight: 800; font-size: 14.5px; letter-spacing: .01em; }
+  .brand .name b { color: var(--cyan); }
 
   .nav { list-style: none; margin: 0; padding: 0; flex: 1; }
   .nav li { margin-bottom: 2px; }
@@ -86,7 +93,7 @@
     display: flex; align-items: center; gap: 11px;
     background: none; border: none;
     color: var(--muted);
-    font-size: 13.5px; font-weight: 500;
+    font-size: 13.5px; font-weight: 600;
     padding: 10px 12px;
     border-radius: 10px;
     cursor: pointer;
@@ -95,7 +102,7 @@
     transition: background .15s, color .15s;
   }
   .nav button:hover { background: var(--panel-2); color: var(--text); }
-  .nav button.active { background: var(--accent); color: #fff; }
+  .nav button.active { background: linear-gradient(135deg, rgba(34,211,238,.18), rgba(59,130,246,.14)); color: var(--cyan); box-shadow: inset 0 0 0 1px rgba(34,211,238,.35); }
   .nav button .ic { width: 18px; text-align: center; flex-shrink: 0; }
 
   .bot-status-box {
@@ -116,66 +123,91 @@
   /* ───────── Main ───────── */
   .main { flex: 1; padding: 22px 26px; min-width: 0; }
 
-  .topbar { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
-  .topbar h1 { font-size: 21px; margin: 0; }
-  .topbar h1 b { color: var(--accent); font-weight: 800; }
-  .badge {
-    display: inline-block; margin-left: 10px; vertical-align: middle;
-    padding: 3px 11px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  /* ───────── Header ───────── */
+  .headerbar {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 20px; margin-bottom: 18px;
   }
-  .badge.ok { background: rgba(52,211,153,.15); color: var(--green); }
-  .badge.paused { background: rgba(52,211,153,.15); color: var(--green); }
-  .badge.nodata { background: rgba(124,135,151,.18); color: var(--muted); }
-  .sub { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .headerbar .left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .headerbar h1 { font-size: 17px; margin: 0; letter-spacing: .02em; text-transform: uppercase; font-weight: 800; }
+  .ver-badge { background: var(--panel-2); border: 1px solid var(--border); color: var(--cyan); font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 7px; margin-left: 8px; }
+  .stat-chip { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11.5px; }
+  .stat-chip .n { color: var(--text); font-weight: 800; font-size: 13.5px; display: block; line-height: 1.1; }
+  .stat-chip .ic { font-size: 15px; }
+  .sep { width: 1px; height: 26px; background: var(--border); }
+
+  .live-pulse { display: flex; align-items: center; gap: 8px; }
+  .live-pulse .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(52,211,153,.6); animation: pulse-dot 1.8s infinite; }
+  .live-pulse.paused .dot { background: var(--green); }
+  .live-pulse.nodata .dot { background: var(--muted); animation: none; }
+  .live-pulse .txt b { display: block; font-size: 12px; letter-spacing: .04em; }
+  .live-pulse .txt span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  @keyframes pulse-dot {
+    0% { box-shadow: 0 0 0 0 rgba(52,211,153,.55); }
+    70% { box-shadow: 0 0 0 8px rgba(52,211,153,0); }
+    100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); }
+  }
+
+  .sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
 
   .top-actions { display: flex; align-items: center; gap: 10px; }
   .theme-toggle {
-    display: flex; background: var(--panel); border: 1px solid var(--border);
+    display: flex; background: var(--panel-2); border: 1px solid var(--border);
     border-radius: 10px; padding: 3px; gap: 2px;
   }
   .theme-toggle button {
     background: none; border: none; color: var(--muted); padding: 6px 9px;
     border-radius: 7px; cursor: pointer; font-size: 13px;
   }
-  .theme-toggle button.active { background: var(--panel-2); color: var(--text); }
+  .theme-toggle button.active { background: var(--panel); color: var(--text); }
   .btn {
-    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
     border-radius: 10px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
   }
-  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:hover { border-color: var(--cyan); color: var(--cyan); }
 
   /* ───────── Cards ───────── */
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 22px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 18px; }
   .card {
+    position: relative; overflow: hidden;
     background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
     padding: 18px; display: flex; gap: 14px; align-items: flex-start;
   }
+  .card .spark { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; opacity: .55; pointer-events: none; }
   .card .icon {
-    width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+    width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0; position: relative; z-index: 1;
     display: flex; align-items: center; justify-content: center; font-size: 18px;
   }
-  .icon.purple { background: rgba(167,139,250,.18); color: var(--purple); }
-  .icon.blue   { background: rgba(96,165,250,.18); color: var(--blue); }
-  .icon.green  { background: rgba(52,211,153,.18); color: var(--green); }
-  .icon.amber  { background: rgba(251,191,36,.18); color: var(--amber); }
-  .card .label { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
-  .card .value { font-size: 24px; font-weight: 800; margin-top: 3px; }
+  .icon.purple { background: rgba(167,139,250,.18); color: var(--purple); box-shadow: 0 0 16px -4px rgba(167,139,250,.5); }
+  .icon.blue   { background: rgba(59,130,246,.18); color: var(--blue); box-shadow: 0 0 16px -4px rgba(59,130,246,.5); }
+  .icon.green  { background: rgba(52,211,153,.18); color: var(--green); box-shadow: 0 0 16px -4px rgba(52,211,153,.5); }
+  .icon.amber  { background: rgba(251,191,36,.18); color: var(--amber); box-shadow: 0 0 16px -4px rgba(251,191,36,.5); }
+  .icon.pink   { background: rgba(244,114,182,.18); color: var(--pink); box-shadow: 0 0 16px -4px rgba(244,114,182,.5); }
+  .card .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; position: relative; z-index: 1; }
+  .card .value { font-size: 23px; font-weight: 800; margin-top: 3px; position: relative; z-index: 1; }
   .card .value.green { color: var(--green); }
   .card .value.red { color: var(--red); }
-  .card .hint { color: var(--muted); font-size: 11.5px; margin-top: 3px; }
-  .bar-track { height: 5px; border-radius: 4px; background: var(--panel-2); margin-top: 9px; overflow: hidden; }
-  .bar-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+  .card .hint { color: var(--muted); font-size: 11.5px; margin-top: 3px; position: relative; z-index: 1; }
+  .bar-track { height: 5px; border-radius: 4px; background: var(--panel-2); margin-top: 9px; overflow: hidden; position: relative; z-index: 1; }
+  .bar-fill { height: 100%; background: var(--cyan); border-radius: 4px; }
   .bar-fill.danger { background: var(--red); }
+
+  .gauge-card { display: flex; align-items: center; gap: 14px; }
+  .gauge-wrap { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+  .gauge-wrap svg { transform: rotate(-90deg); }
+  .gauge-wrap .gauge-val { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
 
   /* ───────── Panels / grid ───────── */
   .grid-2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; margin-bottom: 18px; }
-  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 18px; margin-bottom: 18px; }
+  @media (max-width: 980px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
 
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 18px; }
   .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .panel-head h2 { font-size: 13px; margin: 0; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); display: flex; align-items: center; gap: 8px; }
-  .panel-head h2 .ic { color: var(--accent); }
-  .link-btn { background: none; border: none; color: var(--accent); font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 5px 10px; border-radius: 8px; }
+  .panel-head h2 { font-size: 12.5px; margin: 0; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); display: flex; align-items: center; gap: 8px; font-weight: 800; }
+  .panel-head h2 .ic { color: var(--cyan); }
+  .link-btn { background: none; border: none; color: var(--cyan); font-size: 12px; font-weight: 700; cursor: pointer; padding: 5px 10px; border-radius: 8px; text-transform: uppercase; letter-spacing: .03em; }
   .link-btn:hover { background: var(--panel-2); }
   select.range {
     background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
@@ -184,17 +216,19 @@
 
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; }
+  th { color: var(--muted); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: var(--panel-2); }
 
   .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; }
   .pill.buy  { background: rgba(52,211,153,.18); color: var(--green); }
   .pill.sell { background: rgba(248,113,113,.18); color: var(--red); }
-  .pill.wait { background: rgba(124,135,151,.18); color: var(--muted); }
+  .pill.wait { background: rgba(107,131,168,.18); color: var(--muted); }
   .pill.open { background: rgba(251,191,36,.18); color: var(--amber); }
   .pill.failed { background: rgba(248,113,113,.22); color: var(--red); }
-  .pill.event { background: rgba(129,140,248,.18); color: var(--accent); }
+  .pill.event { background: rgba(34,211,238,.18); color: var(--cyan); }
+  .pill.pass { background: rgba(52,211,153,.18); color: var(--green); }
+  .pill.fail { background: rgba(248,113,113,.18); color: var(--red); }
 
   .muted { color: var(--muted); }
   .empty { text-align: center; padding: 28px 0; color: var(--muted); font-size: 13px; }
@@ -210,12 +244,9 @@
   .kv .k { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
   .kv .v { font-weight: 700; font-size: 15px; margin-top: 4px; word-break: break-word; }
 
-  .pill.pass { background: rgba(52,211,153,.18); color: var(--green); }
-  .pill.fail { background: rgba(248,113,113,.18); color: var(--red); }
-
   .alert-banner {
     display: flex; align-items: center; gap: 10px;
-    background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.35);
+    background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.35);
     color: var(--red); border-radius: 10px; padding: 11px 16px; margin-bottom: 18px;
     font-size: 13px; font-weight: 600;
   }
@@ -225,6 +256,56 @@
   .perf-stats { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 14px; }
   .perf-stats .stat .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
   .perf-stats .stat .v { font-weight: 700; font-size: 16px; margin-top: 2px; }
+
+  /* ───────── Market panorama ───────── */
+  .panorama-wrap { position: relative; width: 100%; }
+  .panorama-svg { width: 100%; height: auto; display: block; }
+  .panorama-node circle.dot { fill: var(--panel-2); stroke: var(--border); stroke-width: 1.5; }
+  .panorama-node.buy circle.dot { stroke: var(--green); }
+  .panorama-node.sell circle.dot { stroke: var(--red); }
+  .panorama-node.open circle.dot { stroke: var(--amber); }
+  .panorama-node text { fill: var(--muted); font-size: 9.5px; font-weight: 700; text-transform: uppercase; }
+  .panorama-line { stroke: var(--border); stroke-width: 1; opacity: .8; }
+  .panorama-center-ring { fill: none; stroke: var(--border); stroke-dasharray: 2 4; }
+  .panorama-center-text { text-anchor: middle; }
+  .panorama-center-text .big { fill: var(--text); font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; }
+  .panorama-center-text .small { fill: var(--muted); font-size: 9.5px; }
+
+  /* ───────── Bot status ring ───────── */
+  .status-ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 6px 0 2px; }
+  .status-ring-wrap .ring-num { font-size: 20px; font-weight: 800; letter-spacing: .03em; }
+  .status-ring-wrap .ring-num.live { color: var(--green); }
+  .status-ring-wrap .ring-num.paused { color: var(--green); }
+  .status-ring-wrap .ring-num.nodata { color: var(--muted); }
+  .status-ring-wrap .heartbeat-row { display: flex; justify-content: space-between; width: 100%; }
+  .status-ring-wrap .heartbeat-row .stat { text-align: center; }
+  .status-ring-wrap .heartbeat-row .k { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+  .status-ring-wrap .heartbeat-row .v { font-weight: 700; font-size: 13px; margin-top: 2px; }
+
+  /* ───────── Quick actions ───────── */
+  .quick-actions { display: flex; flex-direction: column; gap: 10px; }
+  .qa-btn {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 11px 13px; cursor: pointer; text-align: left; font-family: inherit; color: var(--text);
+    transition: border-color .15s, transform .1s;
+  }
+  .qa-btn:hover { border-color: var(--cyan); transform: translateY(-1px); }
+  .qa-btn .qa-ic {
+    width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .qa-btn .qa-title { font-size: 12.5px; font-weight: 700; }
+  .qa-btn .qa-sub { font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+
+  /* ───────── Footer ───────── */
+  .footer-badges {
+    display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap;
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 13px 20px; color: var(--muted); font-size: 11.5px; font-weight: 600;
+  }
+  .footer-badges span { display: flex; align-items: center; gap: 6px; }
+  .footer-badges .tagline { color: var(--muted); opacity: .7; font-weight: 500; }
 </style>
 </head>
 <body>
@@ -253,12 +334,23 @@
 </div>
 
 <div class="main">
-  <div class="topbar">
-    <div>
-      <h1>Trading <b>Bot</b> Dashboard <span id="statusBadge" class="badge nodata">NO DATA</span></h1>
-      <div class="sub" id="subline">Loading…</div>
+
+  <div class="headerbar">
+    <div class="left">
+      <div class="logo" style="width:38px;height:38px;">🤖</div>
+      <div>
+        <h1>Trading Bot Dashboard <span class="ver-badge" id="hdrVersion">v–</span></h1>
+      </div>
+      <div class="sep"></div>
+      <div class="stat-chip"><span class="ic">🛰️</span><span><span class="n" id="hdrSymbols">–</span>Symbols</span></div>
+      <div class="stat-chip"><span class="ic">🎚️</span><span><span class="n" id="hdrConfidence">–</span>Confidence</span></div>
+      <div class="stat-chip"><span class="ic">📅</span><span><span class="n" id="hdrDate">–</span>Updated</span></div>
     </div>
     <div class="top-actions">
+      <div class="live-pulse nodata" id="livePulse">
+        <span class="dot"></span>
+        <span class="txt"><b id="livePulseLabel">NO DATA</b><span>Bot Status</span></span>
+      </div>
       <div class="theme-toggle">
         <button data-theme-btn="light" title="Light">☀️</button>
         <button data-theme-btn="system" title="System">🖥️</button>
@@ -268,28 +360,33 @@
     </div>
   </div>
 
+  <div class="sub" id="subline" style="margin:-8px 0 18px 2px;">Loading…</div>
+
   <div class="alert-banner" id="alertBanner" style="display:none"><span class="ic">⚠️</span><span id="alertBannerText"></span></div>
 
   <div class="cards">
-    <div class="card"><div class="icon purple">📈</div><div><div class="label">Equity</div><div class="value" id="equityVal">–</div><div class="hint">Total account equity</div></div></div>
-    <div class="card"><div class="icon blue">👛</div><div><div class="label">Balance</div><div class="value" id="balanceVal">–</div><div class="hint">Available balance</div></div></div>
-    <div class="card" style="flex-direction:column;">
-      <div style="display:flex; gap:14px; align-items:flex-start; width:100%;">
-        <div class="icon green">📊</div>
-        <div style="flex:1;"><div class="label">Daily P&amp;L</div><div class="value" id="dailyLossVal">–</div></div>
+    <div class="card"><div class="icon purple">📈</div><div style="flex:1;"><div class="label">Equity</div><div class="value" id="equityVal">–</div><div class="hint">Total account equity</div></div><svg class="spark" id="sparkEquity" preserveAspectRatio="none"></svg></div>
+    <div class="card"><div class="icon blue">👛</div><div style="flex:1;"><div class="label">Balance</div><div class="value" id="balanceVal">–</div><div class="hint">Available balance</div></div><svg class="spark" id="sparkBalance" preserveAspectRatio="none"></svg></div>
+    <div class="card gauge-card">
+      <div class="gauge-wrap">
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="26" fill="none" stroke="var(--panel-2)" stroke-width="7"></circle>
+          <circle id="dailyGaugeRing" cx="32" cy="32" r="26" fill="none" stroke="var(--cyan)" stroke-width="7" stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="163.4"></circle>
+        </svg>
+        <div class="gauge-val" id="dailyLossVal">–</div>
       </div>
-      <div class="bar-track" style="width:100%;"><div class="bar-fill" id="dailyLossBar" style="width:0%"></div></div>
+      <div><div class="label">Daily P&amp;L</div><div class="hint" id="dailyLossHint">of daily loss limit</div></div>
     </div>
     <div class="card"><div class="icon amber">💼</div><div><div class="label">Open Positions</div><div class="value" id="posCountVal">–</div><div class="hint" id="posHint">No active positions</div></div></div>
-    <div class="card"><div class="icon pink" style="background:rgba(244,114,182,.18); color:var(--pink);">🎯</div><div><div class="label">Win Rate</div><div class="value" id="winRateVal">–</div><div class="hint" id="winRateHint">No closed trades yet</div></div></div>
+    <div class="card"><div class="icon pink">🎯</div><div><div class="label">Win Rate</div><div class="value" id="winRateVal">–</div><div class="hint" id="winRateHint">No closed trades yet</div></div></div>
   </div>
 
   <!-- ============ DASHBOARD VIEW ============ -->
   <div class="view active" data-view="dashboard">
     <div class="grid-2">
       <div class="panel">
-        <div class="panel-head"><h2><span class="ic">📈</span> Equity Curve</h2></div>
-        <canvas id="equityChart"></canvas>
+        <div class="panel-head"><h2><span class="ic">🛰️</span> Market Panorama</h2><button class="link-btn" data-goto="signals">View all</button></div>
+        <div class="panorama-wrap"><svg class="panorama-svg" id="panoramaSvg" viewBox="0 0 480 300"></svg></div>
       </div>
       <div>
         <div class="panel">
@@ -304,10 +401,35 @@
         </div>
       </div>
     </div>
-    <div class="panel">
-      <div class="panel-head"><h2><span class="ic">🕓</span> Trade History</h2><button class="link-btn" data-goto="history">View all</button></div>
-      <div class="table-wrap"><table id="tradesTableMini"><thead><tr><th>Time</th><th>Event</th><th>Symbol</th><th>Side</th><th>Lot</th><th>Price</th><th>Prob</th><th>Detail</th></tr></thead><tbody></tbody></table></div>
-      <div class="empty" id="tradesMiniEmpty" style="display:none"><span class="ic">🕓</span>No trades logged yet.</div>
+
+    <div class="grid-3" style="margin-bottom:0;">
+      <div class="panel" style="margin-bottom:18px;">
+        <div class="panel-head"><h2><span class="ic">💓</span> Bot Status</h2></div>
+        <div class="status-ring-wrap">
+          <svg width="96" height="96" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r="42" fill="none" stroke="var(--panel-2)" stroke-width="6"></circle>
+            <circle id="statusRing" cx="48" cy="48" r="42" fill="none" stroke="var(--green)" stroke-width="6" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="0" transform="rotate(-90 48 48)"></circle>
+            <text x="48" y="53" text-anchor="middle" font-size="14" font-weight="800" fill="var(--text)" id="statusRingLabel">–</text>
+          </svg>
+          <div class="heartbeat-row">
+            <div class="stat"><div class="k">Uptime</div><div class="v" id="ringUptime">–</div></div>
+            <div class="stat"><div class="k">Last Heartbeat</div><div class="v" id="ringHeartbeat">–</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="margin-bottom:18px;">
+        <div class="panel-head"><h2><span class="ic">⚡</span> Quick Actions</h2></div>
+        <div class="quick-actions">
+          <button class="qa-btn" data-goto="settings"><div class="qa-ic icon purple">🛡️</div><div><div class="qa-title">Adjust Risk</div><div class="qa-sub">Configure risk parameters</div></div></button>
+          <button class="qa-btn" data-goto="signals"><div class="qa-ic icon blue">🧪</div><div><div class="qa-title">Model Quality</div><div class="qa-sub">See why each symbol trades or not</div></div></button>
+          <button class="qa-btn" data-goto="logs"><div class="qa-ic icon amber">📄</div><div><div class="qa-title">View Logs</div><div class="qa-sub">Check system logs &amp; events</div></div></button>
+        </div>
+      </div>
+      <div class="panel" style="margin-bottom:18px;">
+        <div class="panel-head"><h2><span class="ic">🕓</span> Trade History</h2><button class="link-btn" data-goto="history">View all</button></div>
+        <div class="table-wrap"><table id="tradesTableMini"><thead><tr><th>Time</th><th>Event</th><th>Symbol</th><th>Side</th><th>Detail</th></tr></thead><tbody></tbody></table></div>
+        <div class="empty" id="tradesMiniEmpty" style="display:none"><span class="ic">🕓</span>No trades logged yet.</div>
+      </div>
     </div>
   </div>
 
@@ -370,6 +492,7 @@
         <div class="kv"><div class="k">Version</div><div class="v" id="setVersion">–</div></div>
         <div class="kv"><div class="k">Confidence Threshold</div><div class="v" id="setConfidence">–</div></div>
         <div class="kv"><div class="k">Daily Loss Limit</div><div class="v" id="setLossLimit">–</div></div>
+        <div class="kv"><div class="k">Max Concurrent Trades</div><div class="v" id="setMaxConcurrent">–</div></div>
         <div class="kv"><div class="k">Symbols Tracked</div><div class="v" id="setSymbolCount">–</div></div>
         <div class="kv"><div class="k">Started</div><div class="v" id="setStarted">–</div></div>
         <div class="kv"><div class="k">Last Updated</div><div class="v" id="setUpdated">–</div></div>
@@ -387,12 +510,20 @@
     </div>
   </div>
 
+  <div class="footer-badges">
+    <span>🔒 Secure Connection</span>
+    <span>📡 Encrypted Data Feed</span>
+    <span>⚡ Low Latency</span>
+    <span class="tagline">Built for precision. Designed for discipline.</span>
+  </div>
+
 </div>
 
 <script>
 const fmt = (n, d=2) => (n === null || n === undefined || Number.isNaN(n)) ? '–' : Number(n).toFixed(d);
 const fmtMoney = (n) => (n === null || n === undefined) ? '–' : (n < 0 ? '-$' + Math.abs(n).toFixed(2) : '$' + Number(n).toFixed(2));
 const fmtTime = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return iso; } };
+const fmtTimeShort = (iso) => { try { return new Date(iso).toLocaleTimeString(); } catch { return iso; } };
 
 function pill(text, cls, title) { return `<span class="pill ${cls}"${title ? ` title="${title}"` : ''}>${text}</span>`; }
 
@@ -456,7 +587,7 @@ document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click'
 let startedAtMs = null;
 function fmtUptime(ms) {
   if (ms === null) return '–';
-  const s = Math.floor(ms / 1000);
+  const s = Math.floor(Math.max(0, ms) / 1000);
   const d = Math.floor(s / 86400);
   const h = Math.floor((s % 86400) / 3600);
   const m = Math.floor((s % 3600) / 60);
@@ -465,7 +596,11 @@ function fmtUptime(ms) {
   return `${m}m`;
 }
 setInterval(() => {
-  if (startedAtMs) document.getElementById('sbUptime').textContent = fmtUptime(Date.now() - startedAtMs);
+  if (startedAtMs) {
+    const up = fmtUptime(Date.now() - startedAtMs);
+    document.getElementById('sbUptime').textContent = up;
+    document.getElementById('ringUptime').textContent = up;
+  }
 }, 30000);
 
 /* ---------- fetch + render ---------- */
@@ -480,50 +615,73 @@ async function refresh() {
     renderTrades(trades);
     renderEquity(equity);
     renderPerformanceStats(trades, equity);
+    renderSparklines(equity);
   } catch (e) {
     document.getElementById('subline').textContent = 'Dashboard: could not reach bot status (' + e + ')';
   }
 }
 
+function setLivePulse(cls, label, sub) {
+  const el = document.getElementById('livePulse');
+  el.className = 'live-pulse ' + cls;
+  document.getElementById('livePulseLabel').textContent = label;
+  el.querySelector('.txt span').textContent = sub;
+}
+
 function renderStatus(s) {
-  const badge = document.getElementById('statusBadge');
   const sub = document.getElementById('subline');
   const sbStatus = document.getElementById('sbStatus');
 
   if (!s || !s.updated_at) {
     sub.textContent = 'Waiting for the bot to write its first status update…';
-    badge.textContent = 'NO DATA'; badge.className = 'badge nodata';
     sbStatus.textContent = 'NO DATA'; sbStatus.className = 'val nodata';
+    setLivePulse('nodata', 'NO DATA', 'Bot Status');
     startedAtMs = null;
     document.getElementById('sbUptime').textContent = '–';
+    document.getElementById('ringUptime').textContent = '–';
+    document.getElementById('ringHeartbeat').textContent = '–';
+    document.getElementById('statusRingLabel').textContent = '–';
+    renderPanorama([], null);
     return;
   }
 
   const isPaused = !!s.paused;
-  badge.textContent = isPaused ? 'PAUSED' : 'LIVE';
-  badge.className = 'badge ' + (isPaused ? 'paused' : 'ok');
-  sbStatus.textContent = isPaused ? 'PAUSED' : 'LIVE';
+  const statusLabel = isPaused ? 'PAUSED' : 'LIVE';
+  sbStatus.textContent = statusLabel;
   sbStatus.className = 'val ' + (isPaused ? 'paused' : 'live');
+  setLivePulse(isPaused ? 'paused' : 'live', statusLabel, 'Bot Status');
 
-  let subText = `${s.bot_version || ''} · ${(s.symbols || []).length} symbols · confidence ≥ ${s.confidence_threshold ?? '–'} · updated ${fmtTime(s.updated_at)}`;
+  document.getElementById('statusRingLabel').textContent = statusLabel;
+  document.getElementById('ringHeartbeat').textContent = fmtTimeShort(s.updated_at);
+
+  document.getElementById('hdrVersion').textContent = s.bot_version || 'v–';
+  document.getElementById('hdrSymbols').textContent = (s.symbols || []).length;
+  document.getElementById('hdrConfidence').textContent = s.confidence_threshold !== undefined ? `≥ ${s.confidence_threshold}` : '–';
+  document.getElementById('hdrDate').textContent = fmtTimeShort(s.updated_at);
+
+  let subText = `${(s.symbols || []).length} symbols tracked · confidence ≥ ${s.confidence_threshold ?? '–'} · updated ${fmtTime(s.updated_at)}`;
   if (s.pause_reason) subText += ` — ${s.pause_reason}`;
   sub.textContent = subText;
 
   startedAtMs = s.started_at ? new Date(s.started_at).getTime() : null;
-  document.getElementById('sbUptime').textContent = startedAtMs ? fmtUptime(Date.now() - startedAtMs) : '–';
+  const up = startedAtMs ? fmtUptime(Date.now() - startedAtMs) : '–';
+  document.getElementById('sbUptime').textContent = up;
+  document.getElementById('ringUptime').textContent = up;
 
   document.getElementById('equityVal').textContent = fmtMoney(s.equity);
   document.getElementById('balanceVal').textContent = fmtMoney(s.balance);
 
   const lossVal = document.getElementById('dailyLossVal');
   const lossPct = s.daily_loss_pct ?? 0;
-  lossVal.textContent = (lossPct > 0 ? '-' : '') + fmt(Math.abs(lossPct), 2) + '%';
-  lossVal.className = 'value ' + (lossPct > 0 ? 'red' : 'green');
+  lossVal.textContent = (lossPct > 0 ? '-' : '') + fmt(Math.abs(lossPct), 1) + '%';
+  lossVal.style.color = lossPct > 0 ? 'var(--red)' : 'var(--green)';
   const limit = s.daily_loss_limit || 1;
-  const bar = document.getElementById('dailyLossBar');
-  const pct = Math.max(0, Math.min(100, (lossPct / limit) * 100));
-  bar.style.width = pct + '%';
-  bar.className = 'bar-fill' + (pct > 80 ? ' danger' : '');
+  const gaugePct = Math.max(0, Math.min(100, (lossPct / limit) * 100));
+  const CIRC = 163.4;
+  const ring = document.getElementById('dailyGaugeRing');
+  ring.style.strokeDashoffset = CIRC - (CIRC * gaugePct / 100);
+  ring.setAttribute('stroke', gaugePct > 80 ? 'var(--red)' : 'var(--cyan)');
+  document.getElementById('dailyLossHint').textContent = `${fmt(gaugePct,0)}% of ${limit}% daily limit`;
 
   const positions = s.positions || [];
   document.getElementById('posCountVal').textContent = positions.length;
@@ -539,11 +697,13 @@ function renderStatus(s) {
   renderSignals(signals, 'signalsTable', 'signalsEmpty', true);
   renderSignals(signals, 'signalsTableMini', 'signalsMiniEmpty', false);
   renderModelQuality(s.model_quality || {});
+  renderPanorama(s.symbols || [], { signals, positions });
 
   // Settings view
   document.getElementById('setVersion').textContent = s.bot_version || '–';
   document.getElementById('setConfidence').textContent = s.confidence_threshold ?? '–';
   document.getElementById('setLossLimit').textContent = s.daily_loss_limit !== undefined ? s.daily_loss_limit + '%' : '–';
+  document.getElementById('setMaxConcurrent').textContent = s.max_concurrent_trades ?? '–';
   document.getElementById('setSymbolCount').textContent = (s.symbols || []).length;
   document.getElementById('setStarted').textContent = s.started_at ? fmtTime(s.started_at) : '–';
   document.getElementById('setUpdated').textContent = fmtTime(s.updated_at);
@@ -621,7 +781,11 @@ function renderSignals(signals, tableId, emptyId, full) {
 }
 
 function renderTrades(trades) {
-  [['tradesTable','tradesEmpty', trades], ['tradesTableMini','tradesMiniEmpty', trades.slice(0,8)]].forEach(([tid, eid, rows]) => {
+  const tbl = [
+    ['tradesTable', 'tradesEmpty', trades, true],
+    ['tradesTableMini', 'tradesMiniEmpty', trades.slice(0, 6), false],
+  ];
+  tbl.forEach(([tid, eid, rows, full]) => {
     const body = document.querySelector(`#${tid} tbody`);
     body.innerHTML = '';
     document.getElementById(eid).style.display = rows.length ? 'none' : 'block';
@@ -633,7 +797,9 @@ function renderTrades(trades) {
       else detail = [t.sl !== undefined ? 'SL '+fmt(t.sl,5) : '', t.tp !== undefined ? 'TP '+fmt(t.tp,5) : ''].filter(Boolean).join(' / ');
       const price = t.price !== undefined ? t.price : t.close_price;
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${fmtTime(t.time)}</td><td>${pill(t.event, eventCls)}</td><td>${t.symbol||''}</td><td>${t.side ? pill(t.side, t.side==='BUY'?'buy':'sell') : ''}</td><td>${t.lot!==undefined?fmt(t.lot,2):''}</td><td>${price!==undefined?fmt(price,5):''}</td><td>${t.prob!==undefined?fmt(t.prob*100,1)+'%':''}</td><td class="muted">${detail}</td>`;
+      tr.innerHTML = full
+        ? `<td>${fmtTime(t.time)}</td><td>${pill(t.event, eventCls)}</td><td>${t.symbol||''}</td><td>${t.side ? pill(t.side, t.side==='BUY'?'buy':'sell') : ''}</td><td>${t.lot!==undefined?fmt(t.lot,2):''}</td><td>${price!==undefined?fmt(price,5):''}</td><td>${t.prob!==undefined?fmt(t.prob*100,1)+'%':''}</td><td class="muted">${detail}</td>`
+        : `<td>${fmtTimeShort(t.time)}</td><td>${pill(t.event, eventCls)}</td><td>${t.symbol||''}</td><td>${t.side ? pill(t.side, t.side==='BUY'?'buy':'sell') : ''}</td><td class="muted">${detail}</td>`;
       body.appendChild(tr);
     });
   });
@@ -683,6 +849,67 @@ function computeMaxDrawdown(points) {
   return maxDd;
 }
 
+/* ---------- sparklines (mini inline SVG, drawn inside stat cards) ---------- */
+function sparklinePath(values, w, h) {
+  if (!values.length) return '';
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = (max - min) || 1;
+  const step = values.length > 1 ? w / (values.length - 1) : 0;
+  return values.map((v, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(h - ((v - min) / range) * h).toFixed(1)}`).join(' ');
+}
+function renderSparklines(points) {
+  const recent = (points || []).slice(-24);
+  const eqVals = recent.map(p => p.equity).filter(v => v !== null && v !== undefined);
+  const balVals = recent.map(p => p.balance).filter(v => v !== null && v !== undefined);
+  [['sparkEquity', eqVals, '#a78bfa'], ['sparkBalance', balVals, '#3b82f6']].forEach(([id, vals, color]) => {
+    const svg = document.getElementById(id);
+    if (!svg || vals.length < 2) { if (svg) svg.innerHTML = ''; return; }
+    const w = 200, h = 46;
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    const path = sparklinePath(vals, w, h);
+    svg.innerHTML = `<path d="${path}" fill="none" stroke="${color}" stroke-width="2"/>`;
+  });
+}
+
+/* ---------- market panorama (SVG radar of tracked symbols) ---------- */
+function renderPanorama(symbols, ctx) {
+  const svg = document.getElementById('panoramaSvg');
+  const w = 480, h = 300, cx = w / 2, cy = h / 2 + 6, r = 108;
+  const shown = symbols.slice(0, 12);
+  const openCount = ctx ? (ctx.positions || []).length : 0;
+
+  let html = `<circle class="panorama-center-ring" cx="${cx}" cy="${cy}" r="${r}"></circle>`;
+  html += `<circle class="panorama-center-ring" cx="${cx}" cy="${cy}" r="${r*0.62}"></circle>`;
+
+  shown.forEach((sym, i) => {
+    const angle = (2 * Math.PI * i) / Math.max(shown.length, 1) - Math.PI / 2;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    const sig = ctx && ctx.signals ? ctx.signals[sym] : null;
+    let cls = 'wait';
+    if (sig) {
+      if (sig.position_open) cls = 'open';
+      else if (sig.signal === 'BUY') cls = 'buy';
+      else if (sig.signal === 'SELL') cls = 'sell';
+    }
+    html += `<line class="panorama-line" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"></line>`;
+    const labelDx = Math.cos(angle) >= 0 ? 1 : -1;
+    html += `<g class="panorama-node ${cls}">
+      <circle class="dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7"></circle>
+      <text x="${(x + labelDx * 11).toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="${labelDx > 0 ? 'start' : 'end'}">${sym.replace(/m$/,'')}</text>
+    </g>`;
+  });
+
+  const centerLine1 = shown.length === 0 ? 'NO DATA YET' : (openCount > 0 ? `${openCount} OPEN POSITION${openCount === 1 ? '' : 'S'}` : 'NO OPEN POSITIONS');
+  const centerLine2 = shown.length === 0 ? 'Waiting for the bot to report in' : `Scanning ${symbols.length} symbol${symbols.length === 1 ? '' : 's'} for high-probability setups`;
+  html += `<g class="panorama-center-text">
+    <text x="${cx}" y="${cy - 4}" class="big">${centerLine1}</text>
+    <text x="${cx}" y="${cy + 14}" class="small">${centerLine2}</text>
+  </g>`;
+
+  svg.innerHTML = html;
+}
+
 function drawEquity(canvas, points) {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth, h = canvas.clientHeight || 220;
@@ -692,7 +919,7 @@ function drawEquity(canvas, points) {
   ctx.clearRect(0, 0, w, h);
 
   if (!points || points.length < 2) {
-    ctx.fillStyle = '#7c8797';
+    ctx.fillStyle = '#6b83a8';
     ctx.font = '13px sans-serif';
     ctx.fillText('Not enough equity history yet.', 8, h / 2);
     return;
@@ -704,14 +931,14 @@ function drawEquity(canvas, points) {
   const yMin = Math.max(0, min - pad), yMax = max + pad;
   const xStep = w / (points.length - 1);
 
-  ctx.strokeStyle = '#374151'; ctx.lineWidth = 1;
+  ctx.strokeStyle = '#1c2b45'; ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = h - (i / 4) * h;
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.globalAlpha = 0.15; ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.globalAlpha = 0.6; ctx.stroke(); ctx.globalAlpha = 1;
   }
 
   const gradient = ctx.createLinearGradient(0, 0, 0, h);
-  gradient.addColorStop(0, '#a78bfa'); gradient.addColorStop(1, '#818cf8');
+  gradient.addColorStop(0, '#22d3ee'); gradient.addColorStop(1, '#3b82f6');
   ctx.strokeStyle = gradient; ctx.lineWidth = 2.5;
   ctx.beginPath();
   points.forEach((p, i) => {
@@ -723,14 +950,13 @@ function drawEquity(canvas, points) {
 
   ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
   const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
-  fillGrad.addColorStop(0, 'rgba(129,140,248,0.28)'); fillGrad.addColorStop(1, 'rgba(129,140,248,0.02)');
+  fillGrad.addColorStop(0, 'rgba(34,211,238,0.25)'); fillGrad.addColorStop(1, 'rgba(34,211,238,0.02)');
   ctx.fillStyle = fillGrad; ctx.fill();
 }
 
 let lastEquityPoints = [];
 function renderEquity(points) {
   lastEquityPoints = points || [];
-  drawEquity(document.getElementById('equityChart'), lastEquityPoints);
   const full = document.getElementById('equityChartFull');
   if (full) drawEquity(full, lastEquityPoints);
 }
