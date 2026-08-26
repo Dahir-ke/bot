@@ -4587,13 +4587,20 @@ def run_bot():
             "Bot starts with daily loss lock active."
         )
 
+    # Retries in-process instead of exiting when nothing qualifies yet.
+    # This used to be a one-shot check that returned (ending the script)
+    # on zero qualifying symbols - a clean exit, not a crash, so the
+    # scheduled task's restart-on-failure policy never caught it and the
+    # bot just sat dead until something else relaunched it by hand.
+    # Trained-and-found-nothing is a legitimate, expected outcome (model
+    # edge can be marginal run to run) and deserves a retry, not a stop.
     models_dict = prepare_models()
 
-    if not models_dict:
+    while not models_dict and not shutdown_requested:
 
         logging.error(
             "No valid models available. "
-            "Bot will not trade."
+            f"Retrying in {LOOP_INTERVAL_SECONDS}s."
         )
 
         # Without this, the dashboard shows the exact same "waiting
@@ -4602,7 +4609,7 @@ def run_bot():
         # zero symbols worth trading - those are very different
         # things to know from the outside. write_status() otherwise
         # only ever gets called from inside the main loop below, which
-        # this return skips entirely.
+        # this retry path skips entirely.
         if status is not None:
 
             no_model_account = mt5.account_info()
@@ -4626,9 +4633,18 @@ def run_bot():
                     "No symbols currently pass the model quality "
                     "gate (min AUC, min high-confidence precision) - "
                     "trained and evaluated all "
-                    f"{len(SYMBOLS)}, none qualified this run."
+                    f"{len(SYMBOLS)}, none qualified this run. "
+                    "Retrying automatically."
                 ),
             )
+
+        time.sleep(
+            LOOP_INTERVAL_SECONDS
+        )
+
+        models_dict = prepare_models()
+
+    if shutdown_requested:
 
         return
 
