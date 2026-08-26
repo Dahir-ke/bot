@@ -243,13 +243,13 @@ SYMBOL_MIN_ATR_POINTS = {
 # STRATEGY CONFIG
 # ============================================================
 
-MAX_RISK_PERCENT = 0.005
+MAX_RISK_PERCENT = float(os.environ.get("MAX_RISK_PERCENT", "0.005"))
 
 CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", "0.85"))
 
-MIN_PROB_GAP = 0.10
+MIN_PROB_GAP = float(os.environ.get("MIN_PROB_GAP", "0.10"))
 
-COOLDOWN_MINUTES = 30
+COOLDOWN_MINUTES = float(os.environ.get("COOLDOWN_MINUTES", "30"))
 
 MAX_DAILY_LOSS_PERCENT = 3.0
 
@@ -261,9 +261,9 @@ MIN_TRAINING_SAMPLES = 1500
 
 MIN_ADX = float(os.environ.get("MIN_ADX", "20.0"))
 
-MAX_RSI = 85.0
+MAX_RSI = float(os.environ.get("MAX_RSI", "85.0"))
 
-MIN_RSI = 15.0
+MIN_RSI = float(os.environ.get("MIN_RSI", "15.0"))
 
 SL_ATR_MULT = 1.8
 
