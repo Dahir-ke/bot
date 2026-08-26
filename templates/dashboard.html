@@ -535,6 +535,21 @@
       <div class="panel-head"><h2><span class="ic">📈</span> Equity Curve</h2><select class="range" id="rangeSelect"><option value="all">All Time</option><option value="7d">Last 7 Days</option><option value="1d">Last 24 Hours</option></select></div>
       <canvas id="equityChartFull" style="height:340px;"></canvas>
     </div>
+    <div class="panel">
+      <div class="panel-head"><h2><span class="ic">🎲</span> Risk of Ruin (Monte Carlo)</h2></div>
+      <div class="subtext" style="margin:-8px 0 12px;">2,000 simulated paths of the next 100 trades, each resampled with replacement from this bot's actual closed-trade R-multiples at the configured risk per trade. Not a prediction — a resampling of what's already happened.</div>
+      <div id="riskOfRuinEmpty" class="empty" style="display:none"><span class="ic">🎲</span><span id="riskOfRuinEmptyText">Not enough closed trades yet.</span></div>
+      <div id="riskOfRuinBody" style="display:none">
+        <div class="perf-stats">
+          <div class="stat"><div class="k">Median Equity (100 trades)</div><div class="v" id="rorMedian">–</div></div>
+          <div class="stat"><div class="k">5th % ile Equity</div><div class="v" id="rorP5">–</div></div>
+          <div class="stat"><div class="k">95th % ile Equity</div><div class="v" id="rorP95">–</div></div>
+          <div class="stat"><div class="k">P(drawdown &gt; 20%)</div><div class="v" id="rorDd20">–</div></div>
+          <div class="stat"><div class="k">P(drawdown &gt; 50%)</div><div class="v" id="rorDd50">–</div></div>
+          <div class="stat"><div class="k">Risk / Trade</div><div class="v" id="rorRiskPct">–</div></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ============ SETTINGS VIEW ============ -->
@@ -552,6 +567,18 @@
       </div>
       <div class="panel-head" style="margin-top:20px;"><h2>Tracked Symbols</h2></div>
       <div id="setSymbolList" class="sub" style="line-height:1.9;">–</div>
+    </div>
+
+    <div class="panel" style="border-color:rgba(248,113,113,.35);">
+      <div class="panel-head"><h2 style="color:var(--red);"><span class="ic">🛑</span> Kill Switch</h2></div>
+      <div class="subtext" style="margin:-8px 0 14px;">Stops the bot from opening any <b>new</b> positions. Existing open positions are left alone — their broker-side stop-loss/take-profit keep protecting them — this does not force-close anything.</div>
+      <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+        <div>
+          <div class="label" style="color:var(--muted);">Status</div>
+          <div class="value" id="killSwitchStatus" style="font-size:18px;">–</div>
+        </div>
+        <button class="btn" id="killSwitchBtn" style="border-color:var(--red); color:var(--red); margin-left:auto;">Stop New Trades</button>
+      </div>
     </div>
   </div>
 
@@ -645,6 +672,31 @@ document.getElementById('hamburgerBtn')?.addEventListener('click', () => setSide
 document.getElementById('sidebarBackdrop')?.addEventListener('click', () => setSidebarOpen(false));
 document.querySelectorAll('.nav button[data-view]').forEach(b => b.addEventListener('click', () => setSidebarOpen(false)));
 
+/* ---------- kill switch ---------- */
+document.getElementById('killSwitchBtn')?.addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  const isActive = btn.dataset.active === '1';
+  const msg = isActive
+    ? 'Resume trading? The bot will start opening new positions again on its next cycle.'
+    : 'Stop the bot from opening any NEW trades? Existing open positions will be left running with their current SL/TP untouched.';
+  if (!window.confirm(msg)) return;
+
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/kill-switch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: !isActive }),
+    });
+    if (!res.ok) throw new Error('request failed');
+    await refresh();
+  } catch (e) {
+    window.alert('Could not update the kill switch: ' + e);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 /* ---------- uptime ---------- */
 let startedAtMs = null;
 function fmtUptime(ms) {
@@ -678,6 +730,7 @@ async function refresh() {
     renderEquity(equity);
     renderPerformanceStats(trades, equity);
     renderSparklines(equity);
+    renderRiskOfRuin(trades, status && status.max_risk_percent);
   } catch (e) {
     document.getElementById('subline').textContent = 'Dashboard: could not reach bot status (' + e + ')';
   }
@@ -771,6 +824,16 @@ function renderStatus(s) {
   document.getElementById('setUpdated').textContent = fmtTime(s.updated_at);
   document.getElementById('setSymbolList').textContent = (s.symbols || []).join('  ·  ') || '–';
 
+  const killActive = !!s.kill_switch_active;
+  const killStatusEl = document.getElementById('killSwitchStatus');
+  const killBtn = document.getElementById('killSwitchBtn');
+  if (killStatusEl && killBtn) {
+    killStatusEl.textContent = killActive ? 'STOPPED — no new trades' : 'Running normally';
+    killStatusEl.style.color = killActive ? 'var(--red)' : 'var(--green)';
+    killBtn.textContent = killActive ? 'Resume Trading' : 'Stop New Trades';
+    killBtn.dataset.active = killActive ? '1' : '0';
+  }
+
   updateAlertBanner(s);
 }
 
@@ -784,6 +847,8 @@ function updateAlertBanner(s) {
   if (ageSeconds > loopInterval * 3) {
     const mins = Math.round(ageSeconds / 60);
     message = `No update from the bot in ${mins} minute${mins === 1 ? '' : 's'} — it may be offline or have lost its broker connection.`;
+  } else if (s.kill_switch_active) {
+    message = 'Kill switch is active — the bot will not open any new trades until it\'s turned off in Settings.';
   } else if (s.paused && /daily loss/i.test(s.pause_reason || '')) {
     message = `Daily loss limit reached — trading is paused until it resets. ${s.pause_reason || ''}`;
   }
@@ -926,6 +991,75 @@ function computeMaxDrawdown(points) {
     if (peak > 0) maxDd = Math.max(maxDd, ((peak - p.equity) / peak) * 100);
   });
   return maxDd;
+}
+
+/* ---------- risk of ruin (Monte Carlo resampling of closed-trade R-multiples) ---------- */
+const ROR_MIN_TRADES = 20;
+const ROR_SIMS = 2000;
+const ROR_TRADES_FORWARD = 100;
+
+function runMonteCarlo(rMultiples, riskFraction) {
+  const finals = [];
+  const drawdowns = [];
+  for (let s = 0; s < ROR_SIMS; s++) {
+    let equity = 1.0;
+    let peak = 1.0;
+    let maxDd = 0;
+    for (let t = 0; t < ROR_TRADES_FORWARD; t++) {
+      const r = rMultiples[Math.floor(Math.random() * rMultiples.length)];
+      equity *= Math.max(0, 1 + r * riskFraction);
+      peak = Math.max(peak, equity);
+      if (peak > 0) maxDd = Math.max(maxDd, (peak - equity) / peak);
+      if (equity <= 0.001) break;
+    }
+    finals.push(equity);
+    drawdowns.push(maxDd);
+  }
+  finals.sort((a, b) => a - b);
+  const pct = (arr, p) => arr[Math.min(arr.length - 1, Math.floor(arr.length * p))];
+  return {
+    median: pct(finals, 0.5),
+    p5: pct(finals, 0.05),
+    p95: pct(finals, 0.95),
+    ddOver20: drawdowns.filter(d => d > 0.20).length / ROR_SIMS,
+    ddOver50: drawdowns.filter(d => d > 0.50).length / ROR_SIMS,
+  };
+}
+
+function renderRiskOfRuin(trades, maxRiskPercent) {
+  const rMultiples = trades
+    .filter(t => t.event === 'CLOSE' && typeof t.r_multiple === 'number' && Number.isFinite(t.r_multiple))
+    .map(t => t.r_multiple);
+
+  const emptyEl = document.getElementById('riskOfRuinEmpty');
+  const bodyEl = document.getElementById('riskOfRuinBody');
+  if (!emptyEl || !bodyEl) return;
+
+  if (rMultiples.length < ROR_MIN_TRADES || !maxRiskPercent) {
+    emptyEl.style.display = 'block';
+    bodyEl.style.display = 'none';
+    document.getElementById('riskOfRuinEmptyText').textContent =
+      `Not enough closed trades yet — need at least ${ROR_MIN_TRADES}, have ${rMultiples.length}.`;
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  bodyEl.style.display = 'block';
+
+  const riskFraction = maxRiskPercent / 100;
+  const result = runMonteCarlo(rMultiples, riskFraction);
+
+  document.getElementById('rorMedian').textContent = fmt(result.median, 2) + 'x';
+  document.getElementById('rorP5').textContent = fmt(result.p5, 2) + 'x';
+  document.getElementById('rorP95').textContent = fmt(result.p95, 2) + 'x';
+  document.getElementById('rorDd20').textContent = fmt(result.ddOver20 * 100, 0) + '%';
+  document.getElementById('rorDd50').textContent = fmt(result.ddOver50 * 100, 0) + '%';
+  document.getElementById('rorRiskPct').textContent = fmt(maxRiskPercent, 2) + '%';
+
+  const dd20El = document.getElementById('rorDd20');
+  const dd50El = document.getElementById('rorDd50');
+  dd20El.style.color = result.ddOver20 > 0.25 ? 'var(--red)' : (result.ddOver20 > 0.1 ? 'var(--amber)' : 'var(--text)');
+  dd50El.style.color = result.ddOver50 > 0.10 ? 'var(--red)' : (result.ddOver50 > 0.02 ? 'var(--amber)' : 'var(--text)');
 }
 
 /* ---------- sparklines (mini inline SVG, drawn inside stat cards) ---------- */

@@ -159,6 +159,14 @@ DB_FILE = os.path.join(BOT_DATA_DIR, "trading_bot_v8.db")
 
 LOG_FILE = os.path.join(BOT_DATA_DIR, "trading_bot_v8.log")
 
+# Written by the dashboard (see dashboard_server.py's /api/kill-switch
+# route) on the same shared BOT_DATA_DIR volume - read fresh every loop
+# iteration rather than cached, so a manual stop takes effect within one
+# cycle. Only blocks NEW entries; existing positions keep their broker-
+# side SL/TP and are left alone rather than force-closed from here, since
+# programmatic mass-closing is its own source of execution risk.
+KILL_SWITCH_FILE = os.path.join(BOT_DATA_DIR, "kill_switch.json")
+
 MODEL_DIR = Path(BOT_DATA_DIR) / "models_v8"
 
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
@@ -801,6 +809,30 @@ def reset_daily_equity_if_needed():
 
 
 # ============================================================
+# KILL SWITCH
+# ============================================================
+
+def is_kill_switch_active():
+
+    if not os.path.exists(KILL_SWITCH_FILE):
+        return False, None
+
+    try:
+
+        with open(KILL_SWITCH_FILE) as f:
+            data = json.load(f)
+
+    except (json.JSONDecodeError, OSError):
+
+        return False, None
+
+    if not data.get("active"):
+        return False, None
+
+    return True, data.get("reason", "Kill switch active")
+
+
+# ============================================================
 # DAILY RISK
 # ============================================================
 
@@ -1380,8 +1412,17 @@ def add_tp_sl_targets(
     sl_mult=SL_ATR_MULT,
     tp_mult=TP_ATR_MULT,
     lookahead=TARGET_LOOKAHEAD,
+    spread_cost=0.0,
 ):
 
+    # MT5 rate bars are bid-based. A real BUY enters at ask (bid +
+    # spread) and exits at bid; a real SELL enters at bid and exits at
+    # ask. Previously this labeled a "win" purely off the bid-based
+    # bars with no cost at all, which is a materially easier bar to
+    # clear than a real trade actually faces - both directions start
+    # every position already down the spread. Shifting both TP and SL
+    # by spread_cost (up for BUY, down for SELL) makes the win/loss
+    # labels reflect that, rather than training on a zero-cost fiction.
     df = df.copy()
 
     buy_targets = np.full(
@@ -1414,22 +1455,26 @@ def add_tp_sl_targets(
 
         buy_tp = (
             closes[i] +
-            tp_mult * atr
+            tp_mult * atr +
+            spread_cost
         )
 
         buy_sl = (
             closes[i] -
-            sl_mult * atr
+            sl_mult * atr +
+            spread_cost
         )
 
         sell_tp = (
             closes[i] -
-            tp_mult * atr
+            tp_mult * atr -
+            spread_cost
         )
 
         sell_sl = (
             closes[i] +
-            sl_mult * atr
+            sl_mult * atr -
+            spread_cost
         )
 
         buy_result = None
@@ -2283,8 +2328,43 @@ def load_or_train_models(
             f"Training models for {symbol}"
         )
 
+        # Best available proxy for historical spread: we don't have a
+        # per-bar spread series for backtesting, so use the symbol's
+        # current live spread as a stand-in for "typical" - an
+        # approximation (today's spread won't exactly match every past
+        # bar, especially for symbols with volatile spread), but far
+        # closer to reality than assuming zero cost, which is what this
+        # trained on before.
+        spread_cost = 0.0
+
+        symbol_info_for_cost = mt5.symbol_info(symbol)
+
+        if symbol_info_for_cost is not None:
+
+            point_for_cost = safe_float(
+                getattr(symbol_info_for_cost, "point", 0)
+            )
+
+            spread_points_for_cost = safe_float(
+                getattr(symbol_info_for_cost, "spread", 0)
+            )
+
+            if point_for_cost > 0:
+
+                spread_cost = (
+                    spread_points_for_cost
+                    * point_for_cost
+                )
+
+        logging.info(
+            f"{symbol}: training with spread_cost="
+            f"{spread_cost:.6f} "
+            f"({spread_points_for_cost if symbol_info_for_cost else 0} pts)"
+        )
+
         train_df = add_tp_sl_targets(
-            df.copy()
+            df.copy(),
+            spread_cost=spread_cost,
         )
 
         train_df.dropna(
@@ -4438,6 +4518,14 @@ def process_symbol(
         )
     )
 
+    kill_active, kill_reason = is_kill_switch_active()
+
+    if params and kill_active:
+
+        reason = "KILL_SWITCH_ACTIVE"
+
+        params = None
+
     log_decision(
         symbol,
         buy_prob,
@@ -4629,6 +4717,7 @@ def run_bot():
                 loop_interval_seconds=LOOP_INTERVAL_SECONDS,
                 model_quality=model_quality_snapshot,
                 max_concurrent_trades=MAX_CONCURRENT_TRADES,
+                max_risk_percent=MAX_RISK_PERCENT,
                 pause_reason=(
                     "No symbols currently pass the model quality "
                     "gate (min AUC, min high-confidence precision) - "
@@ -4712,6 +4801,7 @@ def run_bot():
                 loop_interval_seconds=LOOP_INTERVAL_SECONDS,
                         model_quality=model_quality_snapshot,
                         max_concurrent_trades=MAX_CONCURRENT_TRADES,
+                max_risk_percent=MAX_RISK_PERCENT,
                     )
 
                 time.sleep(
@@ -4724,13 +4814,36 @@ def run_bot():
 
             if account is None:
 
+                # Previously just logged and hoped the connection healed
+                # itself - it doesn't. mt5.initialize() is safe to call
+                # again on an already-connected terminal, so actively
+                # re-run the full connect sequence (path/login/server)
+                # rather than passively waiting on a dead session.
                 logging.error(
-                    "account_info unavailable"
+                    "account_info unavailable - "
+                    "attempting MT5 reconnect"
                 )
 
-                time.sleep(10)
+                reconnected = initialize_mt5()
 
-                continue
+                if reconnected:
+
+                    logging.info(
+                        "MT5 reconnected successfully"
+                    )
+
+                    account = mt5.account_info()
+
+                if account is None:
+
+                    logging.error(
+                        "MT5 reconnect failed, "
+                        "will retry next cycle"
+                    )
+
+                    time.sleep(10)
+
+                    continue
 
             # ----------------------------------------
             # Process symbols
@@ -4805,12 +4918,14 @@ def run_bot():
                         * 100,
                     )
 
+                kill_active, kill_reason = is_kill_switch_active()
+
                 status.write_status(
                     equity=account.equity,
                     balance=account.balance,
                     daily_loss_pct=daily_loss_pct,
                     daily_loss_limit=MAX_DAILY_LOSS_PERCENT,
-                    paused=daily_loss_lock,
+                    paused=daily_loss_lock or kill_active,
                     positions=positions_snapshot,
                     signals=signals_snapshot,
                     bot_version=f"v{BOT_VERSION}",
@@ -4820,6 +4935,9 @@ def run_bot():
                 loop_interval_seconds=LOOP_INTERVAL_SECONDS,
                     model_quality=model_quality_snapshot,
                     max_concurrent_trades=MAX_CONCURRENT_TRADES,
+                max_risk_percent=MAX_RISK_PERCENT,
+                    kill_switch_active=kill_active,
+                    pause_reason=kill_reason if kill_active else None,
                 )
 
                 status.log_equity_point(account.equity, account.balance)

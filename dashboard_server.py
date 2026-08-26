@@ -10,6 +10,7 @@ bot - see docker-compose.yml.
 import hmac
 import json
 import os
+from datetime import datetime, timezone
 from functools import wraps
 
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
@@ -18,6 +19,10 @@ BASE_DIR = os.environ.get("BOT_DATA_DIR", os.path.dirname(os.path.abspath(__file
 STATUS_FILE = os.path.join(BASE_DIR, "status.json")
 TRADES_FILE = os.path.join(BASE_DIR, "trades.jsonl")
 EQUITY_FILE = os.path.join(BASE_DIR, "equity_curve.jsonl")
+# Same path final_bot.py's KILL_SWITCH_FILE points at - this is the one
+# write path the dashboard has into the bot's world, so the exact
+# filename/location has to match on both sides of the shared volume.
+KILL_SWITCH_FILE = os.path.join(BASE_DIR, "kill_switch.json")
 
 DASHBOARD_USERNAME = os.environ.get("DASHBOARD_USERNAME", "")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "")
@@ -125,6 +130,31 @@ def api_trades():
 @login_required
 def api_equity():
     return jsonify(_read_jsonl(EQUITY_FILE, limit=3000))
+
+
+@app.route("/api/kill-switch", methods=["POST"])
+@login_required
+def api_kill_switch():
+    body = request.get_json(silent=True) or {}
+    active = bool(body.get("active"))
+
+    payload = {
+        "active": active,
+        "reason": (
+            "Manually stopped from the dashboard"
+            if active
+            else None
+        ),
+        "changed_at": datetime.now(timezone.utc).isoformat(),
+        "changed_by": session.get("logged_in") and DASHBOARD_USERNAME,
+    }
+
+    tmp = KILL_SWITCH_FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(payload, f)
+    os.replace(tmp, KILL_SWITCH_FILE)
+
+    return jsonify(payload)
 
 
 if __name__ == "__main__":
