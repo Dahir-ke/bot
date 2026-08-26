@@ -1949,10 +1949,28 @@ def model_passes_quality_gate(
 
         return False
 
-    if (
-        signals >= MIN_HIGH_CONF_SIGNALS
-        and precision_high < MIN_HIGH_CONF_PRECISION
-    ):
+    # Was previously conditional on signals >= MIN_HIGH_CONF_SIGNALS,
+    # meaning a model with too few high-confidence signals to actually
+    # evaluate skipped the precision check entirely and passed on AUC
+    # alone - confirmed by hand that this let two models through on
+    # essentially no evidence: one with 0 high-confidence signals in
+    # its entire walk-forward test, another with exactly 1 (a single
+    # coin flip, not a validated track record). Too few signals to
+    # measure precision on is now itself a failure, not a free pass -
+    # "we don't have enough evidence to trust this" is the honest
+    # outcome, not silently defaulting to trust.
+    if signals < MIN_HIGH_CONF_SIGNALS:
+
+        logging.warning(
+            f"{symbol} {side}: "
+            f"only {signals} high-confidence signals in "
+            f"walk-forward testing, below minimum "
+            f"{MIN_HIGH_CONF_SIGNALS} needed to trust precision"
+        )
+
+        return False
+
+    if precision_high < MIN_HIGH_CONF_PRECISION:
 
         logging.warning(
             f"{symbol} {side}: "
