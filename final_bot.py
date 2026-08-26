@@ -222,7 +222,7 @@ SYMBOL_MAX_SPREAD = {
     "XNGUSDm": 80,
 }
 
-DEFAULT_MAX_SPREAD = 60
+DEFAULT_MAX_SPREAD = float(os.environ.get("DEFAULT_MAX_SPREAD", "60"))
 
 
 # ============================================================
@@ -259,7 +259,7 @@ BARS = 10000
 
 MIN_TRAINING_SAMPLES = 1500
 
-MIN_ADX = 20.0
+MIN_ADX = float(os.environ.get("MIN_ADX", "20.0"))
 
 MAX_RSI = 85.0
 
@@ -271,7 +271,7 @@ TP_ATR_MULT = 3.6
 
 TARGET_LOOKAHEAD = 100
 
-MAX_SPREAD_ATR_RATIO = 0.30
+MAX_SPREAD_ATR_RATIO = float(os.environ.get("MAX_SPREAD_ATR_RATIO", "0.30"))
 
 MAX_DATA_AGE_MINUTES = 10
 
