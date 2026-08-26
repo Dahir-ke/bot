@@ -296,7 +296,9 @@ MIN_HIGH_CONF_PRECISION = float(os.environ.get("MIN_HIGH_CONF_PRECISION", "0.50"
 
 MIN_HIGH_CONF_SIGNALS = int(os.environ.get("MIN_HIGH_CONF_SIGNALS", "10"))
 
-MAX_NOTIONAL_EQUITY_PERCENT = 0.30
+MAX_NOTIONAL_EQUITY_PERCENT = float(
+    os.environ.get("MAX_NOTIONAL_EQUITY_PERCENT", "0.30")
+)
 
 
 # ============================================================
