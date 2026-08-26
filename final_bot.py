@@ -265,9 +265,9 @@ MAX_RSI = float(os.environ.get("MAX_RSI", "85.0"))
 
 MIN_RSI = float(os.environ.get("MIN_RSI", "15.0"))
 
-SL_ATR_MULT = 1.8
+SL_ATR_MULT = float(os.environ.get("SL_ATR_MULT", "1.8"))
 
-TP_ATR_MULT = 3.6
+TP_ATR_MULT = float(os.environ.get("TP_ATR_MULT", "3.6"))
 
 TARGET_LOOKAHEAD = 100
 
