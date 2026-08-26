@@ -229,6 +229,7 @@
   .pill.event { background: rgba(34,211,238,.18); color: var(--cyan); }
   .pill.pass { background: rgba(52,211,153,.18); color: var(--green); }
   .pill.fail { background: rgba(248,113,113,.18); color: var(--red); }
+  .pill.half { background: rgba(251,191,36,.18); color: var(--amber); }
 
   .muted { color: var(--muted); }
   .empty { text-align: center; padding: 28px 0; color: var(--muted); font-size: 13px; }
@@ -442,7 +443,7 @@
     </div>
     <div class="panel">
       <div class="panel-head"><h2><span class="ic">🧪</span> Model Quality (Walk-Forward)</h2></div>
-      <div class="subtext" style="margin:-8px 0 12px;">Per-symbol training results from the most recent quality-gate check — why a model is or isn't trusted to trade, independent of the current bar's filters above.</div>
+      <div class="subtext" style="margin:-8px 0 12px;">Per-symbol training results from the most recent quality-gate check — why a model is or isn't trusted to trade, independent of the current bar's filters above. A symbol only actually trades if <b>both</b> BUY and SELL pass; a single passing side is marked INACTIVE if its counterpart doesn't.</div>
       <div class="table-wrap"><table id="modelQualityTable"><thead><tr><th>Symbol</th><th>Side</th><th>Status</th><th>AUC</th><th>Precision</th><th>Signals</th><th>Coverage</th><th>Reason</th></tr></thead><tbody></tbody></table></div>
       <div class="empty" id="modelQualityEmpty" style="display:none"><span class="ic">🧪</span>No model training results yet.</div>
     </div>
@@ -739,15 +740,32 @@ function renderModelQuality(quality) {
   body.innerHTML = '';
   const rows = [];
   Object.keys(quality).sort().forEach(sym => {
+    const buy = quality[sym].BUY;
+    const sell = quality[sym].SELL;
+    // A symbol only actually trades if BOTH sides pass their quality gate -
+    // load_or_train_models() drops the whole symbol if either side fails,
+    // so a single passing side never means that side is live.
+    const symbolTradable = !!(buy && buy.passed && sell && sell.passed);
     ['BUY', 'SELL'].forEach(side => {
       const q = quality[sym][side];
-      if (q) rows.push([sym, side, q]);
+      if (q) rows.push([sym, side, q, symbolTradable]);
     });
   });
   document.getElementById('modelQualityEmpty').style.display = rows.length ? 'none' : 'block';
-  rows.forEach(([sym, side, q]) => {
+  rows.forEach(([sym, side, q, symbolTradable]) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${sym}</td><td>${pill(side, side === 'BUY' ? 'buy' : 'sell')}</td><td>${pill(q.passed ? 'TRUSTED' : 'REJECTED', q.passed ? 'pass' : 'fail')}</td><td>${q.auc !== undefined ? fmt(q.auc, 3) : '–'}</td><td>${q.precision !== undefined ? fmt(q.precision * 100, 1) + '%' : '–'}</td><td>${q.signals ?? '–'}</td><td>${q.coverage !== undefined ? fmt(q.coverage * 100, 1) + '%' : '–'}</td><td class="muted">${q.reason || (q.passed ? 'Meets all quality-gate thresholds' : '')}</td>`;
+    let statusLabel, statusCls, reasonText;
+    if (q.passed && symbolTradable) {
+      statusLabel = 'TRUSTED'; statusCls = 'pass';
+      reasonText = 'Meets all quality-gate thresholds';
+    } else if (q.passed && !symbolTradable) {
+      statusLabel = 'INACTIVE'; statusCls = 'half';
+      reasonText = `This side passed, but ${sym}'s other side didn't — both must pass for the symbol to trade.`;
+    } else {
+      statusLabel = 'REJECTED'; statusCls = 'fail';
+      reasonText = q.reason || '';
+    }
+    tr.innerHTML = `<td>${sym}</td><td>${pill(side, side === 'BUY' ? 'buy' : 'sell')}</td><td>${pill(statusLabel, statusCls)}</td><td>${q.auc !== undefined ? fmt(q.auc, 3) : '–'}</td><td>${q.precision !== undefined ? fmt(q.precision * 100, 1) + '%' : '–'}</td><td>${q.signals ?? '–'}</td><td>${q.coverage !== undefined ? fmt(q.coverage * 100, 1) + '%' : '–'}</td><td class="muted">${reasonText}</td>`;
     body.appendChild(tr);
   });
 }
