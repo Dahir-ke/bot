@@ -4472,6 +4472,36 @@ def run_bot():
             "Bot will not trade."
         )
 
+        # Without this, the dashboard shows the exact same "waiting
+        # for first update" blank state whether the bot never started
+        # or whether it ran a full training pass and correctly found
+        # zero symbols worth trading - those are very different
+        # things to know from the outside. write_status() otherwise
+        # only ever gets called from inside the main loop below, which
+        # this return skips entirely.
+        if status is not None:
+
+            no_model_account = mt5.account_info()
+
+            status.write_status(
+                equity=getattr(no_model_account, "equity", None),
+                balance=getattr(no_model_account, "balance", None),
+                daily_loss_pct=0.0,
+                daily_loss_limit=MAX_DAILY_LOSS_PERCENT,
+                paused=True,
+                positions=[],
+                signals={},
+                bot_version=f"v{BOT_VERSION}",
+                confidence_threshold=CONFIDENCE_THRESHOLD,
+                symbols=SYMBOLS,
+                pause_reason=(
+                    "No symbols currently pass the model quality "
+                    "gate (min AUC, min high-confidence precision) - "
+                    "trained and evaluated all "
+                    f"{len(SYMBOLS)}, none qualified this run."
+                ),
+            )
+
         return
 
     logging.info(
