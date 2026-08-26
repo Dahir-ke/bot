@@ -4421,6 +4421,8 @@ def run_bot():
 
     global shutdown_requested
 
+    bot_started_at = utc_now().isoformat()
+
     logging.info(
         "================================================"
     )
@@ -4494,6 +4496,7 @@ def run_bot():
                 bot_version=f"v{BOT_VERSION}",
                 confidence_threshold=CONFIDENCE_THRESHOLD,
                 symbols=SYMBOLS,
+                started_at=bot_started_at,
                 pause_reason=(
                     "No symbols currently pass the model quality "
                     "gate (min AUC, min high-confidence precision) - "
@@ -4564,6 +4567,7 @@ def run_bot():
                         bot_version=f"v{BOT_VERSION}",
                         confidence_threshold=CONFIDENCE_THRESHOLD,
                         symbols=SYMBOLS,
+                        started_at=bot_started_at,
                     )
 
                 time.sleep(
@@ -4668,6 +4672,7 @@ def run_bot():
                     bot_version=f"v{BOT_VERSION}",
                     confidence_threshold=CONFIDENCE_THRESHOLD,
                     symbols=SYMBOLS,
+                    started_at=bot_started_at,
                 )
 
                 status.log_equity_point(account.equity, account.balance)

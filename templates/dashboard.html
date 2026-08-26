@@ -6,147 +6,360 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root {
-    --bg: #0f1115;
-    --panel: #171a21;
-    --panel-border: #262b36;
-    --text: #e6e8eb;
-    --muted: #8b93a3;
-    --green: #3ddc84;
-    --red: #ff5c5c;
-    --amber: #ffb84d;
-    --accent: #5b8cff;
+    --bg: #0a0e17;
+    --panel: #11161f;
+    --panel-2: #161c28;
+    --border: #232a38;
+    --text: #eef1f6;
+    --muted: #7c8797;
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+    --pink: #f472b6;
+    --accent: #818cf8;
+    --radius: 14px;
   }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f4f6fb;
+      --panel: #ffffff;
+      --panel-2: #f0f2f8;
+      --border: #e2e6ef;
+      --text: #1a2233;
+      --muted: #6b7688;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --panel-2: #f0f2f8;
+    --border: #e2e6ef;
+    --text: #1a2233;
+    --muted: #6b7688;
+  }
+
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
-    padding: 24px;
+    display: flex;
+    min-height: 100vh;
   }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
-  .badge {
-    display: inline-block; padding: 2px 8px; border-radius: 999px;
-    font-size: 12px; font-weight: 600; margin-left: 8px;
-  }
-  .badge.ok { background: rgba(61,220,132,0.15); color: var(--green); }
-  .badge.paused { background: rgba(255,92,92,0.15); color: var(--red); }
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-  .card {
+
+  /* ───────── Sidebar ───────── */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
     background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 10px;
-    padding: 14px 16px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 14px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
   }
-  .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-  .card .value { font-size: 22px; font-weight: 600; margin-top: 4px; }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px 22px;
+  }
+  .brand .logo {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--blue));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+  }
+  .brand .name { font-weight: 700; font-size: 15px; }
+  .brand .name b { color: var(--accent); }
+
+  .nav { list-style: none; margin: 0; padding: 0; flex: 1; }
+  .nav li { margin-bottom: 2px; }
+  .nav button {
+    width: 100%;
+    display: flex; align-items: center; gap: 11px;
+    background: none; border: none;
+    color: var(--muted);
+    font-size: 13.5px; font-weight: 500;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: background .15s, color .15s;
+  }
+  .nav button:hover { background: var(--panel-2); color: var(--text); }
+  .nav button.active { background: var(--accent); color: #fff; }
+  .nav button .ic { width: 18px; text-align: center; flex-shrink: 0; }
+
+  .bot-status-box {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-top: 10px;
+  }
+  .bot-status-box .row { display: flex; align-items: center; gap: 8px; }
+  .bot-status-box .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .bot-status-box .val { font-weight: 700; font-size: 13.5px; margin-top: 2px; }
+  .bot-status-box .val.live { color: var(--green); }
+  .bot-status-box .val.paused { color: var(--green); }
+  .bot-status-box .val.nodata { color: var(--muted); }
+  .bot-status-box .divider { height: 1px; background: var(--border); margin: 10px 0; }
+
+  /* ───────── Main ───────── */
+  .main { flex: 1; padding: 22px 26px; min-width: 0; }
+
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
+  .topbar h1 { font-size: 21px; margin: 0; }
+  .topbar h1 b { color: var(--accent); font-weight: 800; }
+  .badge {
+    display: inline-block; margin-left: 10px; vertical-align: middle;
+    padding: 3px 11px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  }
+  .badge.ok { background: rgba(52,211,153,.15); color: var(--green); }
+  .badge.paused { background: rgba(52,211,153,.15); color: var(--green); }
+  .badge.nodata { background: rgba(124,135,151,.18); color: var(--muted); }
+  .sub { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+
+  .top-actions { display: flex; align-items: center; gap: 10px; }
+  .theme-toggle {
+    display: flex; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 3px; gap: 2px;
+  }
+  .theme-toggle button {
+    background: none; border: none; color: var(--muted); padding: 6px 9px;
+    border-radius: 7px; cursor: pointer; font-size: 13px;
+  }
+  .theme-toggle button.active { background: var(--panel-2); color: var(--text); }
+  .btn {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    border-radius: 10px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ───────── Cards ───────── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 22px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px; display: flex; gap: 14px; align-items: flex-start;
+  }
+  .card .icon {
+    width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .icon.purple { background: rgba(167,139,250,.18); color: var(--purple); }
+  .icon.blue   { background: rgba(96,165,250,.18); color: var(--blue); }
+  .icon.green  { background: rgba(52,211,153,.18); color: var(--green); }
+  .icon.amber  { background: rgba(251,191,36,.18); color: var(--amber); }
+  .card .label { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+  .card .value { font-size: 24px; font-weight: 800; margin-top: 3px; }
   .card .value.green { color: var(--green); }
   .card .value.red { color: var(--red); }
-  .bar-track {
-    height: 6px; border-radius: 4px; background: #262b36; margin-top: 8px; overflow: hidden;
-  }
-  .bar-fill { height: 100%; background: var(--accent); }
+  .card .hint { color: var(--muted); font-size: 11.5px; margin-top: 3px; }
+  .bar-track { height: 5px; border-radius: 4px; background: var(--panel-2); margin-top: 9px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 4px; }
   .bar-fill.danger { background: var(--red); }
-  section {
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 10px;
-    padding: 16px;
-    margin-bottom: 20px;
+
+  /* ───────── Panels / grid ───────── */
+  .grid-2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; margin-bottom: 18px; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 18px; }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .panel-head h2 { font-size: 13px; margin: 0; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .panel-head h2 .ic { color: var(--accent); }
+  .link-btn { background: none; border: none; color: var(--accent); font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 5px 10px; border-radius: 8px; }
+  .link-btn:hover { background: var(--panel-2); }
+  select.range {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 6px 10px; font-size: 12.5px; font-family: inherit;
   }
-  section h2 { font-size: 14px; margin: 0 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--panel-border); white-space: nowrap; }
-  th { color: var(--muted); font-weight: 500; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; }
   tr:last-child td { border-bottom: none; }
-  .pill { padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 600; }
-  .pill.buy { background: rgba(61,220,132,0.15); color: var(--green); }
-  .pill.sell { background: rgba(255,92,92,0.15); color: var(--red); }
-  .pill.wait { background: rgba(139,147,163,0.15); color: var(--muted); }
-  .pill.open { background: rgba(255,184,77,0.15); color: var(--amber); }
-  .pill.failed { background: rgba(255,92,92,0.15); color: var(--red); }
+  tr:hover td { background: var(--panel-2); }
+
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; }
+  .pill.buy  { background: rgba(52,211,153,.18); color: var(--green); }
+  .pill.sell { background: rgba(248,113,113,.18); color: var(--red); }
+  .pill.wait { background: rgba(124,135,151,.18); color: var(--muted); }
+  .pill.open { background: rgba(251,191,36,.18); color: var(--amber); }
+  .pill.failed { background: rgba(248,113,113,.22); color: var(--red); }
+  .pill.event { background: rgba(129,140,248,.18); color: var(--accent); }
+
   .muted { color: var(--muted); }
-  .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
-  #equityChart { width: 100%; height: 180px; display: block; }
+  .empty { text-align: center; padding: 28px 0; color: var(--muted); font-size: 13px; }
+  .empty .ic { font-size: 26px; display: block; margin-bottom: 8px; opacity: .5; }
   .table-wrap { overflow-x: auto; }
+  #equityChart, #equityChartFull { width: 100%; height: 220px; display: block; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .kv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .kv { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .kv .k { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+  .kv .v { font-weight: 700; font-size: 15px; margin-top: 4px; word-break: break-word; }
 </style>
 </head>
 <body>
 
-<div style="display:flex; align-items:baseline; justify-content:space-between;">
-  <h1>Trading Bot Dashboard <span id="statusBadge" class="badge ok">LIVE</span></h1>
-  <form method="post" action="/logout"><button type="submit" style="background:none; border:1px solid var(--panel-border); color:var(--muted); border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer;">Log out</button></form>
+<div class="sidebar">
+  <div class="brand">
+    <div class="logo">🤖</div>
+    <div class="name">Trading <b>Bot</b> Dashboard</div>
+  </div>
+  <ul class="nav">
+    <li><button class="active" data-view="dashboard"><span class="ic">🏠</span> Dashboard</button></li>
+    <li><button data-view="signals"><span class="ic">📡</span> Signals</button></li>
+    <li><button data-view="positions"><span class="ic">💼</span> Positions</button></li>
+    <li><button data-view="history"><span class="ic">🕓</span> History</button></li>
+    <li><button data-view="performance"><span class="ic">📈</span> Performance</button></li>
+    <li><button data-view="settings"><span class="ic">⚙️</span> Settings</button></li>
+    <li><button data-view="logs"><span class="ic">📄</span> Logs</button></li>
+  </ul>
+  <div class="bot-status-box">
+    <div class="label">Bot Status</div>
+    <div class="val nodata" id="sbStatus">–</div>
+    <div class="divider"></div>
+    <div class="label">Uptime</div>
+    <div class="val" id="sbUptime" style="color:var(--text)">–</div>
+  </div>
 </div>
-<div class="sub" id="subline">Loading…</div>
 
-<div class="cards">
-  <div class="card"><div class="label">Equity</div><div class="value" id="equityVal">–</div></div>
-  <div class="card"><div class="label">Balance</div><div class="value" id="balanceVal">–</div></div>
-  <div class="card">
-    <div class="label">Daily P&amp;L</div>
-    <div class="value" id="dailyLossVal">–</div>
-    <div class="bar-track"><div class="bar-fill" id="dailyLossBar" style="width:0%"></div></div>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <h1>Trading <b>Bot</b> Dashboard <span id="statusBadge" class="badge nodata">NO DATA</span></h1>
+      <div class="sub" id="subline">Loading…</div>
+    </div>
+    <div class="top-actions">
+      <div class="theme-toggle">
+        <button data-theme-btn="light" title="Light">☀️</button>
+        <button data-theme-btn="system" title="System">🖥️</button>
+        <button data-theme-btn="dark" title="Dark">🌙</button>
+      </div>
+      <form method="post" action="/logout"><button type="submit" class="btn">↩ Log out</button></form>
+    </div>
   </div>
-  <div class="card"><div class="label">Open Positions</div><div class="value" id="posCountVal">–</div></div>
+
+  <div class="cards">
+    <div class="card"><div class="icon purple">📈</div><div><div class="label">Equity</div><div class="value" id="equityVal">–</div><div class="hint">Total account equity</div></div></div>
+    <div class="card"><div class="icon blue">👛</div><div><div class="label">Balance</div><div class="value" id="balanceVal">–</div><div class="hint">Available balance</div></div></div>
+    <div class="card" style="flex-direction:column;">
+      <div style="display:flex; gap:14px; align-items:flex-start; width:100%;">
+        <div class="icon green">📊</div>
+        <div style="flex:1;"><div class="label">Daily P&amp;L</div><div class="value" id="dailyLossVal">–</div></div>
+      </div>
+      <div class="bar-track" style="width:100%;"><div class="bar-fill" id="dailyLossBar" style="width:0%"></div></div>
+    </div>
+    <div class="card"><div class="icon amber">💼</div><div><div class="label">Open Positions</div><div class="value" id="posCountVal">–</div><div class="hint" id="posHint">No active positions</div></div></div>
+  </div>
+
+  <!-- ============ DASHBOARD VIEW ============ -->
+  <div class="view active" data-view="dashboard">
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><h2><span class="ic">📈</span> Equity Curve</h2></div>
+        <canvas id="equityChart"></canvas>
+      </div>
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h2><span class="ic">📡</span> Model Signals</h2></div>
+          <div class="table-wrap"><table id="signalsTableMini"><thead><tr><th>Symbol</th><th>State</th><th>Prob</th></tr></thead><tbody></tbody></table></div>
+          <div class="empty" id="signalsMiniEmpty" style="display:none"><span class="ic">📡</span>No model signals available.</div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2><span class="ic">💼</span> Open Positions</h2><button class="link-btn" data-goto="positions">View all</button></div>
+          <div class="table-wrap"><table id="positionsTableMini"><thead><tr><th>Symbol</th><th>Side</th><th>Profit</th></tr></thead><tbody></tbody></table></div>
+          <div class="empty" id="positionsMiniEmpty" style="display:none"><span class="ic">💼</span>No open positions.</div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2><span class="ic">🕓</span> Trade History</h2><button class="link-btn" data-goto="history">View all</button></div>
+      <div class="table-wrap"><table id="tradesTableMini"><thead><tr><th>Time</th><th>Event</th><th>Symbol</th><th>Side</th><th>Lot</th><th>Price</th><th>Prob</th><th>Detail</th></tr></thead><tbody></tbody></table></div>
+      <div class="empty" id="tradesMiniEmpty" style="display:none"><span class="ic">🕓</span>No trades logged yet.</div>
+    </div>
+  </div>
+
+  <!-- ============ SIGNALS VIEW ============ -->
+  <div class="view" data-view="signals">
+    <div class="panel">
+      <div class="panel-head"><h2><span class="ic">📡</span> Model Signals</h2></div>
+      <div class="table-wrap"><table id="signalsTable"><thead><tr><th>Symbol</th><th>State</th><th>Prob</th><th>ATR</th><th>ADX</th><th>RSI</th><th>H1 Trend</th></tr></thead><tbody></tbody></table></div>
+      <div class="empty" id="signalsEmpty" style="display:none"><span class="ic">📡</span>No model signals available.</div>
+    </div>
+  </div>
+
+  <!-- ============ POSITIONS VIEW ============ -->
+  <div class="view" data-view="positions">
+    <div class="panel">
+      <div class="panel-head"><h2><span class="ic">💼</span> Open Positions</h2></div>
+      <div class="table-wrap"><table id="positionsTable"><thead><tr><th>Symbol</th><th>Side</th><th>Volume</th><th>Open Price</th><th>SL</th><th>TP</th><th>Profit</th></tr></thead><tbody></tbody></table></div>
+      <div class="empty" id="positionsEmpty" style="display:none"><span class="ic">💼</span>No open positions.</div>
+    </div>
+  </div>
+
+  <!-- ============ HISTORY VIEW ============ -->
+  <div class="view" data-view="history">
+    <div class="panel">
+      <div class="panel-head"><h2><span class="ic">🕓</span> Trade History</h2></div>
+      <div class="table-wrap"><table id="tradesTable"><thead><tr><th>Time</th><th>Event</th><th>Symbol</th><th>Side</th><th>Lot</th><th>Price</th><th>Prob</th><th>Detail</th></tr></thead><tbody></tbody></table></div>
+      <div class="empty" id="tradesEmpty" style="display:none"><span class="ic">🕓</span>No trades logged yet.</div>
+    </div>
+  </div>
+
+  <!-- ============ PERFORMANCE VIEW ============ -->
+  <div class="view" data-view="performance">
+    <div class="panel">
+      <div class="panel-head"><h2><span class="ic">📈</span> Equity Curve</h2><select class="range" id="rangeSelect"><option value="all">All Time</option><option value="7d">Last 7 Days</option><option value="1d">Last 24 Hours</option></select></div>
+      <canvas id="equityChartFull" style="height:340px;"></canvas>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS VIEW ============ -->
+  <div class="view" data-view="settings">
+    <div class="panel">
+      <div class="panel-head"><h2><span class="ic">⚙️</span> Bot Configuration</h2></div>
+      <div class="kv-grid">
+        <div class="kv"><div class="k">Version</div><div class="v" id="setVersion">–</div></div>
+        <div class="kv"><div class="k">Confidence Threshold</div><div class="v" id="setConfidence">–</div></div>
+        <div class="kv"><div class="k">Daily Loss Limit</div><div class="v" id="setLossLimit">–</div></div>
+        <div class="kv"><div class="k">Symbols Tracked</div><div class="v" id="setSymbolCount">–</div></div>
+        <div class="kv"><div class="k">Started</div><div class="v" id="setStarted">–</div></div>
+        <div class="kv"><div class="k">Last Updated</div><div class="v" id="setUpdated">–</div></div>
+      </div>
+      <div class="panel-head" style="margin-top:20px;"><h2>Tracked Symbols</h2></div>
+      <div id="setSymbolList" class="sub" style="line-height:1.9;">–</div>
+    </div>
+  </div>
+
+  <!-- ============ LOGS VIEW ============ -->
+  <div class="view" data-view="logs">
+    <div class="panel">
+      <div class="panel-head"><h2><span class="ic">📄</span> Logs</h2></div>
+      <div class="empty"><span class="ic">📄</span>Live log streaming isn't wired up yet — check the pause/skip reasons in Settings and Signals for now.</div>
+    </div>
+  </div>
+
 </div>
-
-<section>
-  <h2>Equity Curve</h2>
-  <canvas id="equityChart"></canvas>
-</section>
-
-<section>
-  <h2>Model Signals</h2>
-  <div class="table-wrap">
-  <table id="signalsTable">
-    <thead>
-      <tr><th>Symbol</th><th>State</th><th>Prob</th><th>ATR</th><th>ADX</th><th>RSI</th><th>H1 Trend</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-  </div>
-</section>
-
-<section>
-  <h2>Open Positions</h2>
-  <div class="table-wrap">
-  <table id="positionsTable">
-    <thead>
-      <tr><th>Symbol</th><th>Side</th><th>Volume</th><th>Open Price</th><th>SL</th><th>TP</th><th>Profit</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-  </div>
-  <div class="empty" id="positionsEmpty" style="display:none">No open positions.</div>
-</section>
-
-<section>
-  <h2>Trade History</h2>
-  <div class="table-wrap">
-  <table id="tradesTable">
-    <thead>
-      <tr><th>Time</th><th>Event</th><th>Symbol</th><th>Side</th><th>Lot</th><th>Price</th><th>Prob</th><th>Detail</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-  </div>
-  <div class="empty" id="tradesEmpty" style="display:none">No trades logged yet.</div>
-</section>
 
 <script>
 const fmt = (n, d=2) => (n === null || n === undefined || Number.isNaN(n)) ? '–' : Number(n).toFixed(d);
 const fmtMoney = (n) => (n === null || n === undefined) ? '–' : '$' + Number(n).toFixed(2);
 const fmtTime = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return iso; } };
 
-function pill(text, cls) {
-  return `<span class="pill ${cls}">${text}</span>`;
-}
+function pill(text, cls) { return `<span class="pill ${cls}">${text}</span>`; }
 
 function signalState(entry) {
   if (entry.position_open) return pill('IN POSITION', 'open');
@@ -157,6 +370,47 @@ function signalState(entry) {
   return pill('WAITING', 'wait');
 }
 
+/* ---------- theme ---------- */
+function applyTheme(mode) {
+  const root = document.documentElement;
+  if (mode === 'light') root.setAttribute('data-theme', 'light');
+  else if (mode === 'dark') root.setAttribute('data-theme', 'dark');
+  else root.removeAttribute('data-theme');
+  document.querySelectorAll('[data-theme-btn]').forEach(b => b.classList.toggle('active', b.dataset.themeBtn === mode));
+  localStorage.setItem('dashboard-theme', mode);
+}
+document.querySelectorAll('[data-theme-btn]').forEach(b => b.addEventListener('click', () => applyTheme(b.dataset.themeBtn)));
+applyTheme(localStorage.getItem('dashboard-theme') || 'system');
+
+/* ---------- nav ---------- */
+function showView(name) {
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.dataset.view === name));
+  if (name === 'performance') {
+    const full = document.getElementById('equityChartFull');
+    if (full) drawEquity(full, lastEquityPoints);
+  }
+}
+document.querySelectorAll('.nav button[data-view]').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
+document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showView(b.dataset.goto)));
+
+/* ---------- uptime ---------- */
+let startedAtMs = null;
+function fmtUptime(ms) {
+  if (ms === null) return '–';
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+setInterval(() => {
+  if (startedAtMs) document.getElementById('sbUptime').textContent = fmtUptime(Date.now() - startedAtMs);
+}, 30000);
+
+/* ---------- fetch + render ---------- */
 async function refresh() {
   try {
     const [status, trades, equity] = await Promise.all([
@@ -175,16 +429,29 @@ async function refresh() {
 function renderStatus(s) {
   const badge = document.getElementById('statusBadge');
   const sub = document.getElementById('subline');
+  const sbStatus = document.getElementById('sbStatus');
+
   if (!s || !s.updated_at) {
     sub.textContent = 'Waiting for the bot to write its first status update…';
-    badge.textContent = 'NO DATA';
-    badge.className = 'badge paused';
+    badge.textContent = 'NO DATA'; badge.className = 'badge nodata';
+    sbStatus.textContent = 'NO DATA'; sbStatus.className = 'val nodata';
+    startedAtMs = null;
+    document.getElementById('sbUptime').textContent = '–';
     return;
   }
 
-  badge.textContent = s.paused ? 'PAUSED' : 'LIVE';
-  badge.className = 'badge ' + (s.paused ? 'paused' : 'ok');
-  sub.textContent = `${s.bot_version || ''} · ${(s.symbols || []).length} symbols · confidence ≥ ${s.confidence_threshold ?? '–'} · updated ${fmtTime(s.updated_at)}`;
+  const isPaused = !!s.paused;
+  badge.textContent = isPaused ? 'PAUSED' : 'LIVE';
+  badge.className = 'badge ' + (isPaused ? 'paused' : 'ok');
+  sbStatus.textContent = isPaused ? 'PAUSED' : 'LIVE';
+  sbStatus.className = 'val ' + (isPaused ? 'paused' : 'live');
+
+  let subText = `${s.bot_version || ''} · ${(s.symbols || []).length} symbols · confidence ≥ ${s.confidence_threshold ?? '–'} · updated ${fmtTime(s.updated_at)}`;
+  if (s.pause_reason) subText += ` — ${s.pause_reason}`;
+  sub.textContent = subText;
+
+  startedAtMs = s.started_at ? new Date(s.started_at).getTime() : null;
+  document.getElementById('sbUptime').textContent = startedAtMs ? fmtUptime(Date.now() - startedAtMs) : '–';
 
   document.getElementById('equityVal').textContent = fmtMoney(s.equity);
   document.getElementById('balanceVal').textContent = fmtMoney(s.balance);
@@ -201,60 +468,78 @@ function renderStatus(s) {
 
   const positions = s.positions || [];
   document.getElementById('posCountVal').textContent = positions.length;
+  document.getElementById('posHint').textContent = positions.length ? `${positions.length} active` : 'No active positions';
 
-  const posBody = document.querySelector('#positionsTable tbody');
-  posBody.innerHTML = '';
-  document.getElementById('positionsEmpty').style.display = positions.length ? 'none' : 'block';
-  positions.forEach(p => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${p.symbol}</td><td>${pill(p.side, p.side === 'BUY' ? 'buy' : 'sell')}</td>
-      <td>${fmt(p.volume, 2)}</td><td>${fmt(p.price_open, 5)}</td><td>${fmt(p.sl, 5)}</td>
-      <td>${fmt(p.tp, 5)}</td><td class="${p.profit >= 0 ? '' : ''}">${fmtMoney(p.profit)}</td>`;
-    posBody.appendChild(tr);
-  });
+  renderPositions(positions, 'positionsTable', 'positionsEmpty', true);
+  renderPositions(positions, 'positionsTableMini', 'positionsMiniEmpty', false);
 
   const signals = s.signals || {};
-  const sigBody = document.querySelector('#signalsTable tbody');
-  sigBody.innerHTML = '';
-  Object.keys(signals).sort().forEach(sym => {
-    const e = signals[sym];
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${sym}</td><td>${signalState(e)}</td><td>${e.prob !== undefined ? fmt(e.prob * 100, 1) + '%' : '–'}</td>
-      <td>${e.atr !== undefined ? fmt(e.atr, 4) : '–'}</td><td>${e.adx !== undefined ? fmt(e.adx, 1) : '–'}</td>
-      <td>${e.rsi !== undefined ? fmt(e.rsi, 1) : '–'}</td>
-      <td>${e.h1_trend === undefined ? '–' : (e.h1_trend === 1 ? 'UP' : e.h1_trend === -1 ? 'DOWN' : 'NONE')}</td>`;
-    sigBody.appendChild(tr);
-  });
+  renderSignals(signals, 'signalsTable', 'signalsEmpty', true);
+  renderSignals(signals, 'signalsTableMini', 'signalsMiniEmpty', false);
+
+  // Settings view
+  document.getElementById('setVersion').textContent = s.bot_version || '–';
+  document.getElementById('setConfidence').textContent = s.confidence_threshold ?? '–';
+  document.getElementById('setLossLimit').textContent = s.daily_loss_limit !== undefined ? s.daily_loss_limit + '%' : '–';
+  document.getElementById('setSymbolCount').textContent = (s.symbols || []).length;
+  document.getElementById('setStarted').textContent = s.started_at ? fmtTime(s.started_at) : '–';
+  document.getElementById('setUpdated').textContent = fmtTime(s.updated_at);
+  document.getElementById('setSymbolList').textContent = (s.symbols || []).join('  ·  ') || '–';
 }
 
-function renderTrades(trades) {
-  const body = document.querySelector('#tradesTable tbody');
+function renderPositions(positions, tableId, emptyId, full) {
+  const body = document.querySelector(`#${tableId} tbody`);
   body.innerHTML = '';
-  document.getElementById('tradesEmpty').style.display = trades.length ? 'none' : 'block';
-  trades.forEach(t => {
-    const eventCls = t.event === 'OPEN' ? 'open' : t.event === 'FAILED' ? 'failed' : 'wait';
-    const detail = t.event === 'FAILED' ? (t.error || '') : [t.sl !== undefined ? 'SL ' + fmt(t.sl, 5) : '', t.tp !== undefined ? 'TP ' + fmt(t.tp, 5) : ''].filter(Boolean).join(' / ');
+  document.getElementById(emptyId).style.display = positions.length ? 'none' : 'block';
+  positions.forEach(p => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${fmtTime(t.time)}</td><td>${pill(t.event, eventCls)}</td><td>${t.symbol || ''}</td>
-      <td>${t.side ? pill(t.side, t.side === 'BUY' ? 'buy' : 'sell') : ''}</td>
-      <td>${t.lot !== undefined ? fmt(t.lot, 2) : ''}</td><td>${t.price !== undefined ? fmt(t.price, 5) : ''}</td>
-      <td>${t.prob !== undefined ? fmt(t.prob * 100, 1) + '%' : ''}</td><td class="muted">${detail}</td>`;
+    tr.innerHTML = full
+      ? `<td>${p.symbol}</td><td>${pill(p.side, p.side === 'BUY' ? 'buy' : 'sell')}</td><td>${fmt(p.volume,2)}</td><td>${fmt(p.price_open,5)}</td><td>${fmt(p.sl,5)}</td><td>${fmt(p.tp,5)}</td><td>${fmtMoney(p.profit)}</td>`
+      : `<td>${p.symbol}</td><td>${pill(p.side, p.side === 'BUY' ? 'buy' : 'sell')}</td><td>${fmtMoney(p.profit)}</td>`;
     body.appendChild(tr);
   });
 }
 
-function renderEquity(points) {
-  const canvas = document.getElementById('equityChart');
+function renderSignals(signals, tableId, emptyId, full) {
+  const body = document.querySelector(`#${tableId} tbody`);
+  body.innerHTML = '';
+  const keys = Object.keys(signals).sort();
+  document.getElementById(emptyId).style.display = keys.length ? 'none' : 'block';
+  keys.forEach(sym => {
+    const e = signals[sym];
+    const tr = document.createElement('tr');
+    tr.innerHTML = full
+      ? `<td>${sym}</td><td>${signalState(e)}</td><td>${e.prob !== undefined ? fmt(e.prob*100,1)+'%' : '–'}</td><td>${e.atr !== undefined ? fmt(e.atr,4) : '–'}</td><td>${e.adx !== undefined ? fmt(e.adx,1) : '–'}</td><td>${e.rsi !== undefined ? fmt(e.rsi,1) : '–'}</td><td>${e.h1_trend === undefined ? '–' : (e.h1_trend===1?'UP':e.h1_trend===-1?'DOWN':'NONE')}</td>`
+      : `<td>${sym}</td><td>${signalState(e)}</td><td>${e.prob !== undefined ? fmt(e.prob*100,1)+'%' : '–'}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+function renderTrades(trades) {
+  [['tradesTable','tradesEmpty', trades], ['tradesTableMini','tradesMiniEmpty', trades.slice(0,8)]].forEach(([tid, eid, rows]) => {
+    const body = document.querySelector(`#${tid} tbody`);
+    body.innerHTML = '';
+    document.getElementById(eid).style.display = rows.length ? 'none' : 'block';
+    rows.forEach(t => {
+      const eventCls = t.event === 'OPEN' ? 'open' : t.event === 'FAILED' ? 'failed' : 'event';
+      const detail = t.event === 'FAILED' ? (t.error || '') : [t.sl !== undefined ? 'SL '+fmt(t.sl,5) : '', t.tp !== undefined ? 'TP '+fmt(t.tp,5) : ''].filter(Boolean).join(' / ');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${fmtTime(t.time)}</td><td>${pill(t.event, eventCls)}</td><td>${t.symbol||''}</td><td>${t.side ? pill(t.side, t.side==='BUY'?'buy':'sell') : ''}</td><td>${t.lot!==undefined?fmt(t.lot,2):''}</td><td>${t.price!==undefined?fmt(t.price,5):''}</td><td>${t.prob!==undefined?fmt(t.prob*100,1)+'%':''}</td><td class="muted">${detail}</td>`;
+      body.appendChild(tr);
+    });
+  });
+}
+
+function drawEquity(canvas, points) {
   const dpr = window.devicePixelRatio || 1;
-  const w = canvas.clientWidth, h = canvas.clientHeight || 180;
-  canvas.width = w * dpr;
-  canvas.height = h * dpr;
+  const w = canvas.clientWidth, h = canvas.clientHeight || 220;
+  canvas.width = w * dpr; canvas.height = h * dpr;
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
 
   if (!points || points.length < 2) {
-    ctx.fillStyle = '#8b93a3';
+    ctx.fillStyle = '#7c8797';
     ctx.font = '13px sans-serif';
     ctx.fillText('Not enough equity history yet.', 8, h / 2);
     return;
@@ -262,12 +547,19 @@ function renderEquity(points) {
 
   const values = points.map(p => p.equity).filter(v => v !== null && v !== undefined);
   const min = Math.min(...values), max = Math.max(...values);
-  const pad = (max - min) * 0.1 || 1;
-  const yMin = min - pad, yMax = max + pad;
+  const pad = (max - min) * 0.15 || 1;
+  const yMin = Math.max(0, min - pad), yMax = max + pad;
   const xStep = w / (points.length - 1);
 
-  ctx.strokeStyle = '#5b8cff';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#374151'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = h - (i / 4) * h;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.globalAlpha = 0.15; ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, h);
+  gradient.addColorStop(0, '#a78bfa'); gradient.addColorStop(1, '#818cf8');
+  ctx.strokeStyle = gradient; ctx.lineWidth = 2.5;
   ctx.beginPath();
   points.forEach((p, i) => {
     const x = i * xStep;
@@ -276,12 +568,30 @@ function renderEquity(points) {
   });
   ctx.stroke();
 
-  ctx.lineTo(w, h);
-  ctx.lineTo(0, h);
-  ctx.closePath();
-  ctx.fillStyle = 'rgba(91,140,255,0.12)';
-  ctx.fill();
+  ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+  const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
+  fillGrad.addColorStop(0, 'rgba(129,140,248,0.28)'); fillGrad.addColorStop(1, 'rgba(129,140,248,0.02)');
+  ctx.fillStyle = fillGrad; ctx.fill();
 }
+
+let lastEquityPoints = [];
+function renderEquity(points) {
+  lastEquityPoints = points || [];
+  drawEquity(document.getElementById('equityChart'), lastEquityPoints);
+  const full = document.getElementById('equityChartFull');
+  if (full) drawEquity(full, lastEquityPoints);
+}
+
+document.getElementById('rangeSelect')?.addEventListener('change', (e) => {
+  const now = Date.now();
+  let cutoff = 0;
+  if (e.target.value === '7d') cutoff = now - 7*86400000;
+  else if (e.target.value === '1d') cutoff = now - 86400000;
+  const filtered = cutoff ? lastEquityPoints.filter(p => new Date(p.time).getTime() >= cutoff) : lastEquityPoints;
+  drawEquity(document.getElementById('equityChartFull'), filtered);
+});
+
+window.addEventListener('resize', () => renderEquity(lastEquityPoints));
 
 refresh();
 setInterval(refresh, 4000);

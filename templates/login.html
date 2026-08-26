@@ -6,15 +6,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root {
-    --bg: #0f1115;
-    --panel: #171a21;
-    --panel-border: #262b36;
-    --text: #e6e8eb;
-    --muted: #8b93a3;
-    --accent: #5b8cff;
-    --red: #ff5c5c;
+    --bg-start: #1a1a2e;
+    --bg-end: #16213e;
+    --panel-bg: rgba(255, 255, 255, 0.07);
+    --panel-border: rgba(255, 255, 255, 0.12);
+    --text: #f0f4ff;
+    --muted: #b0c4de;
+    --accent: #818cf8;
+    --accent2: #f472b6;
+    --red: #f87171;
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --radius: 16px;
   }
+
   * { box-sizing: border-box; }
+
   body {
     margin: 0;
     min-height: 100vh;
@@ -22,58 +28,147 @@
     align-items: center;
     justify-content: center;
     font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
+    background: linear-gradient(145deg, var(--bg-start), var(--bg-end));
     padding: 24px;
+    backdrop-filter: blur(2px);
   }
+
   .card {
     width: 100%;
-    max-width: 340px;
-    background: var(--panel);
+    max-width: 380px;
+    background: var(--panel-bg);
+    backdrop-filter: blur(16px);
     border: 1px solid var(--panel-border);
-    border-radius: 12px;
-    padding: 28px;
+    border-radius: var(--radius);
+    padding: 36px 32px;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
   }
-  h1 { font-size: 17px; margin: 0 0 4px; }
-  p.sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
-  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+
+  /* Top accent bar */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    opacity: 0.8;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  }
+
+  h1 {
+    font-size: 24px;
+    margin: 0 0 4px;
+    background: linear-gradient(to right, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+  }
+
+  p.sub {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 24px;
+    opacity: 0.8;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
   input {
     width: 100%;
-    background: #0f1115;
+    background: rgba(0, 0, 0, 0.25);
     border: 1px solid var(--panel-border);
     color: var(--text);
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 14px;
-    margin-bottom: 16px;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 15px;
+    margin-bottom: 18px;
+    transition: border-color 0.3s, box-shadow 0.3s;
   }
-  input:focus { outline: none; border-color: var(--accent); }
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.2);
+  }
+  input::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+  }
+
   button {
     width: 100%;
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
     color: white;
     border: none;
-    border-radius: 8px;
-    padding: 11px;
-    font-size: 14px;
-    font-weight: 600;
+    border-radius: 10px;
+    padding: 13px;
+    font-size: 16px;
+    font-weight: 700;
     cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 16px rgba(129, 140, 248, 0.3);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
   }
-  .error { color: var(--red); font-size: 13px; margin-bottom: 16px; }
+  button:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 24px rgba(129, 140, 248, 0.5);
+  }
+  button:active {
+    transform: scale(0.98);
+  }
+
+  .error {
+    color: var(--red);
+    font-size: 14px;
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    background: rgba(248, 113, 113, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid var(--red);
+    font-weight: 500;
+  }
+
+  /* subtle floating animation */
+  @keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+    100% { transform: translateY(0px); }
+  }
+  .card {
+    animation: float 6s ease-in-out infinite;
+  }
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Trading Bot Dashboard</h1>
-    <p class="sub">Sign in to view live status and trade history.</p>
-    {% if error %}<div class="error">{{ error }}</div>{% endif %}
-    <form method="post">
-      <label for="username">Username</label>
-      <input id="username" name="username" type="text" autocomplete="username" autofocus>
-      <label for="password">Password</label>
-      <input id="password" name="password" type="password" autocomplete="current-password">
-      <button type="submit">Sign in</button>
-    </form>
-  </div>
+<div class="card">
+  <h1>📈 Trading Bot</h1>
+  <p class="sub">Sign in to view live status and trade history.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <label for="username">Username</label>
+    <input id="username" name="username" type="text" autocomplete="username" autofocus placeholder="Enter your username">
+
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••">
+
+    <button type="submit">Sign in →</button>
+  </form>
+</div>
 </body>
 </html>
