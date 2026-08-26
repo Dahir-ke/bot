@@ -3194,6 +3194,19 @@ def evaluate_trade_conditions(
 
     if contract_size > 0:
 
+        # `entry` is in the symbol's quote currency, but notional_cap is
+        # in account currency (USD) - this only comes out correct when
+        # the quote currency IS USD (EURUSDm, XAUUSDm). For any other
+        # quote currency it's off by that currency's exchange rate: too
+        # tight when the quote currency's per-unit value is large versus
+        # the base leg (e.g. AUDMXNm - MXN per AUD is a big number,
+        # shrinking max_notional_lot far below what the cap actually
+        # intends), too loose the other way (e.g. USDJPYm/USDDKKm - JPY
+        # or DKK per USD makes this cap effectively a no-op, though the
+        # separately-computed risk-based lot sizing above still applies
+        # since it correctly uses MT5's own order_calc_profit). Not fixed
+        # here since it's real-money position-sizing math - would need
+        # proper base-to-account-currency conversion, not a quick patch.
         notional_cap = (
             safe_float(account.equity)
             * MAX_NOTIONAL_EQUITY_PERCENT
