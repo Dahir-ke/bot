@@ -273,6 +273,15 @@ TARGET_LOOKAHEAD = 100
 
 MAX_SPREAD_ATR_RATIO = float(os.environ.get("MAX_SPREAD_ATR_RATIO", "0.30"))
 
+# Strategy-logic filter (not an execution-quality one, unlike the ADX/
+# spread checks above) - blocks trading against the H1 trend. Default
+# on everywhere; can be turned off per-deployment (e.g. demo testing)
+# via env, but doing so changes what the bot considers a valid signal,
+# not just when it's willing to act on one.
+REQUIRE_H1_ALIGNMENT = os.environ.get(
+    "REQUIRE_H1_ALIGNMENT", "true"
+).strip().lower() not in ("false", "0", "no")
+
 MAX_DATA_AGE_MINUTES = 10
 
 LOOP_INTERVAL_SECONDS = 60
@@ -4249,7 +4258,8 @@ def process_symbol(
     )
 
     if (
-        signal_name == "BUY"
+        REQUIRE_H1_ALIGNMENT
+        and signal_name == "BUY"
         and h1_trend != 1
     ):
 
@@ -4272,7 +4282,8 @@ def process_symbol(
         return
 
     if (
-        signal_name == "SELL"
+        REQUIRE_H1_ALIGNMENT
+        and signal_name == "SELL"
         and h1_trend != -1
     ):
 
