@@ -307,6 +307,12 @@ last_processed_bar = {}
 # show right now" and only ever needs the most recent row per symbol.
 signals_snapshot = {}
 
+# Per-symbol/side walk-forward diagnostics from the most recent quality
+# gate evaluation (see model_passes_quality_gate) - dashboard-shaped, so
+# "why isn't this symbol trading" is answerable from training results,
+# not just the current bar's skip_reason.
+model_quality_snapshot = {}
+
 daily_start_equity = None
 
 daily_start_balance = None
@@ -1923,6 +1929,26 @@ def train_walk_forward_single_model(
 # MODEL QUALITY GATE
 # ============================================================
 
+def _record_model_quality(
+    symbol,
+    side,
+    diagnostics,
+    passed,
+    reason,
+):
+
+    model_quality_snapshot.setdefault(
+        symbol, {}
+    )[side] = {
+        "auc": diagnostics.get("roc_auc"),
+        "precision": diagnostics.get("precision_high_conf"),
+        "signals": diagnostics.get("signals_high_conf"),
+        "coverage": diagnostics.get("coverage"),
+        "passed": passed,
+        "reason": reason,
+    }
+
+
 def model_passes_quality_gate(
     diagnostics,
     symbol,
@@ -1941,10 +1967,21 @@ def model_passes_quality_gate(
 
     if auc < MIN_MODEL_ROC_AUC:
 
-        logging.warning(
-            f"{symbol} {side}: "
+        reason = (
             f"AUC {auc:.3f} below minimum "
             f"{MIN_MODEL_ROC_AUC:.3f}"
+        )
+
+        logging.warning(
+            f"{symbol} {side}: {reason}"
+        )
+
+        _record_model_quality(
+            symbol,
+            side,
+            diagnostics,
+            False,
+            reason,
         )
 
         return False
@@ -1961,25 +1998,55 @@ def model_passes_quality_gate(
     # outcome, not silently defaulting to trust.
     if signals < MIN_HIGH_CONF_SIGNALS:
 
-        logging.warning(
-            f"{symbol} {side}: "
+        reason = (
             f"only {signals} high-confidence signals in "
             f"walk-forward testing, below minimum "
             f"{MIN_HIGH_CONF_SIGNALS} needed to trust precision"
+        )
+
+        logging.warning(
+            f"{symbol} {side}: {reason}"
+        )
+
+        _record_model_quality(
+            symbol,
+            side,
+            diagnostics,
+            False,
+            reason,
         )
 
         return False
 
     if precision_high < MIN_HIGH_CONF_PRECISION:
 
-        logging.warning(
-            f"{symbol} {side}: "
+        reason = (
             f"high-confidence precision "
             f"{precision_high:.2%} below "
             f"{MIN_HIGH_CONF_PRECISION:.2%}"
         )
 
+        logging.warning(
+            f"{symbol} {side}: {reason}"
+        )
+
+        _record_model_quality(
+            symbol,
+            side,
+            diagnostics,
+            False,
+            reason,
+        )
+
         return False
+
+    _record_model_quality(
+        symbol,
+        side,
+        diagnostics,
+        True,
+        None,
+    )
 
     return True
 
@@ -2553,7 +2620,11 @@ def update_closed_trades():
                 SELECT
                     initial_volume,
                     closed_volume,
-                    initial_risk
+                    initial_risk,
+                    symbol,
+                    side,
+                    entry_price,
+                    prob
                 FROM trades
                 WHERE position_ticket = ?
                 """,
@@ -2567,6 +2638,10 @@ def update_closed_trades():
                 initial_volume,
                 closed_volume,
                 initial_risk,
+                closed_symbol,
+                closed_side,
+                closed_entry_price,
+                closed_prob,
             ) = row
 
             deal_volume = safe_float(
@@ -2605,6 +2680,14 @@ def update_closed_trades():
                 getattr(
                     deal,
                     "fee",
+                    0,
+                )
+            )
+
+            deal_price = safe_float(
+                getattr(
+                    deal,
+                    "price",
                     0,
                 )
             )
@@ -2687,6 +2770,19 @@ def update_closed_trades():
                         f"Net={net:.2f} | "
                         f"R={r_multiple:.2f}"
                     )
+
+                    if status is not None:
+                        status.log_trade(
+                            event="CLOSE",
+                            symbol=closed_symbol,
+                            side=closed_side,
+                            position_ticket=position_id,
+                            entry_price=closed_entry_price,
+                            close_price=deal_price,
+                            net_profit=net,
+                            r_multiple=r_multiple,
+                            prob=closed_prob,
+                        )
 
         conn.commit()
 
@@ -4497,6 +4593,9 @@ def run_bot():
                 confidence_threshold=CONFIDENCE_THRESHOLD,
                 symbols=SYMBOLS,
                 started_at=bot_started_at,
+                loop_interval_seconds=LOOP_INTERVAL_SECONDS,
+                model_quality=model_quality_snapshot,
+                max_concurrent_trades=MAX_CONCURRENT_TRADES,
                 pause_reason=(
                     "No symbols currently pass the model quality "
                     "gate (min AUC, min high-confidence precision) - "
@@ -4568,6 +4667,9 @@ def run_bot():
                         confidence_threshold=CONFIDENCE_THRESHOLD,
                         symbols=SYMBOLS,
                         started_at=bot_started_at,
+                loop_interval_seconds=LOOP_INTERVAL_SECONDS,
+                        model_quality=model_quality_snapshot,
+                        max_concurrent_trades=MAX_CONCURRENT_TRADES,
                     )
 
                 time.sleep(
@@ -4673,6 +4775,9 @@ def run_bot():
                     confidence_threshold=CONFIDENCE_THRESHOLD,
                     symbols=SYMBOLS,
                     started_at=bot_started_at,
+                loop_interval_seconds=LOOP_INTERVAL_SECONDS,
+                    model_quality=model_quality_snapshot,
+                    max_concurrent_trades=MAX_CONCURRENT_TRADES,
                 )
 
                 status.log_equity_point(account.equity, account.balance)

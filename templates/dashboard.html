@@ -209,6 +209,22 @@
   .kv { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
   .kv .k { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
   .kv .v { font-weight: 700; font-size: 15px; margin-top: 4px; word-break: break-word; }
+
+  .pill.pass { background: rgba(52,211,153,.18); color: var(--green); }
+  .pill.fail { background: rgba(248,113,113,.18); color: var(--red); }
+
+  .alert-banner {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.35);
+    color: var(--red); border-radius: 10px; padding: 11px 16px; margin-bottom: 18px;
+    font-size: 13px; font-weight: 600;
+  }
+  .alert-banner .ic { font-size: 16px; }
+
+  .subtext { color: var(--muted); font-size: 11.5px; font-weight: 500; margin-top: 2px; }
+  .perf-stats { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 14px; }
+  .perf-stats .stat .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .perf-stats .stat .v { font-weight: 700; font-size: 16px; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -252,6 +268,8 @@
     </div>
   </div>
 
+  <div class="alert-banner" id="alertBanner" style="display:none"><span class="ic">⚠️</span><span id="alertBannerText"></span></div>
+
   <div class="cards">
     <div class="card"><div class="icon purple">📈</div><div><div class="label">Equity</div><div class="value" id="equityVal">–</div><div class="hint">Total account equity</div></div></div>
     <div class="card"><div class="icon blue">👛</div><div><div class="label">Balance</div><div class="value" id="balanceVal">–</div><div class="hint">Available balance</div></div></div>
@@ -263,6 +281,7 @@
       <div class="bar-track" style="width:100%;"><div class="bar-fill" id="dailyLossBar" style="width:0%"></div></div>
     </div>
     <div class="card"><div class="icon amber">💼</div><div><div class="label">Open Positions</div><div class="value" id="posCountVal">–</div><div class="hint" id="posHint">No active positions</div></div></div>
+    <div class="card"><div class="icon pink" style="background:rgba(244,114,182,.18); color:var(--pink);">🎯</div><div><div class="label">Win Rate</div><div class="value" id="winRateVal">–</div><div class="hint" id="winRateHint">No closed trades yet</div></div></div>
   </div>
 
   <!-- ============ DASHBOARD VIEW ============ -->
@@ -299,6 +318,12 @@
       <div class="table-wrap"><table id="signalsTable"><thead><tr><th>Symbol</th><th>State</th><th>Prob</th><th>ATR</th><th>ADX</th><th>RSI</th><th>H1 Trend</th></tr></thead><tbody></tbody></table></div>
       <div class="empty" id="signalsEmpty" style="display:none"><span class="ic">📡</span>No model signals available.</div>
     </div>
+    <div class="panel">
+      <div class="panel-head"><h2><span class="ic">🧪</span> Model Quality (Walk-Forward)</h2></div>
+      <div class="subtext" style="margin:-8px 0 12px;">Per-symbol training results from the most recent quality-gate check — why a model is or isn't trusted to trade, independent of the current bar's filters above.</div>
+      <div class="table-wrap"><table id="modelQualityTable"><thead><tr><th>Symbol</th><th>Side</th><th>Status</th><th>AUC</th><th>Precision</th><th>Signals</th><th>Coverage</th><th>Reason</th></tr></thead><tbody></tbody></table></div>
+      <div class="empty" id="modelQualityEmpty" style="display:none"><span class="ic">🧪</span>No model training results yet.</div>
+    </div>
   </div>
 
   <!-- ============ POSITIONS VIEW ============ -->
@@ -321,6 +346,16 @@
 
   <!-- ============ PERFORMANCE VIEW ============ -->
   <div class="view" data-view="performance">
+    <div class="panel">
+      <div class="panel-head"><h2><span class="ic">📈</span> Performance</h2></div>
+      <div class="perf-stats">
+        <div class="stat"><div class="k">Win Rate</div><div class="v" id="perfWinRate">–</div></div>
+        <div class="stat"><div class="k">Expectancy / Trade</div><div class="v" id="perfExpectancy">–</div></div>
+        <div class="stat"><div class="k">Closed Trades</div><div class="v" id="perfClosedCount">–</div></div>
+        <div class="stat"><div class="k">Today's Trades</div><div class="v" id="perfTodayCount">–</div></div>
+        <div class="stat"><div class="k">Max Drawdown</div><div class="v" id="perfDrawdown">–</div></div>
+      </div>
+    </div>
     <div class="panel">
       <div class="panel-head"><h2><span class="ic">📈</span> Equity Curve</h2><select class="range" id="rangeSelect"><option value="all">All Time</option><option value="7d">Last 7 Days</option><option value="1d">Last 24 Hours</option></select></div>
       <canvas id="equityChartFull" style="height:340px;"></canvas>
@@ -356,15 +391,38 @@
 
 <script>
 const fmt = (n, d=2) => (n === null || n === undefined || Number.isNaN(n)) ? '–' : Number(n).toFixed(d);
-const fmtMoney = (n) => (n === null || n === undefined) ? '–' : '$' + Number(n).toFixed(2);
+const fmtMoney = (n) => (n === null || n === undefined) ? '–' : (n < 0 ? '-$' + Math.abs(n).toFixed(2) : '$' + Number(n).toFixed(2));
 const fmtTime = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return iso; } };
 
-function pill(text, cls) { return `<span class="pill ${cls}">${text}</span>`; }
+function pill(text, cls, title) { return `<span class="pill ${cls}"${title ? ` title="${title}"` : ''}>${text}</span>`; }
+
+const SKIP_REASON_TEXT = {
+  NO_TRADE_POSITION_EXISTS: 'Already holding a position in this symbol',
+  NO_TRADE_COOLDOWN: 'In post-trade cooldown for this symbol',
+  NO_TRADE_BROKER_STOP_DISTANCE: "Stop-loss/take-profit too close to the broker's minimum distance",
+  NO_TRADE_BROKER_MIN_LOT: "Position size below the broker's minimum lot size",
+  NO_TRADE_LOT_TOO_SMALL: 'Calculated position size rounded down to zero',
+  NO_TRADE_RISK_EXCEEDED: 'Position would risk more than the per-trade risk limit',
+  NO_TRADE_MARGIN_TOO_HIGH: 'Not enough free margin for this position',
+  NO_TRADE_PROB_GAP: "Model's buy/sell probabilities too close together to trust a direction",
+  NO_TRADE_MODEL_CONFIDENCE: 'Model probability below the confidence threshold',
+  NO_TRADE_STALE_DATA: 'Market data is too old to trust',
+  NO_TRADE_INVALID_ATR: 'ATR (volatility) reading is invalid',
+  NO_TRADE_LOW_ATR: 'Volatility (ATR) too low to size a safe stop',
+  NO_TRADE_LOW_ADX: 'Trend strength (ADX) too weak to trade',
+  NO_TRADE_SPREAD: 'Spread too wide relative to volatility right now',
+  NO_TRADE_FEATURE_NAN: 'Missing/invalid indicator data for this bar',
+  NO_TRADE_RSI_EXTREME: 'RSI in an extreme zone, skipped as a safety filter',
+  NO_TRADE_MAX_POSITIONS: 'Max concurrent open positions already reached',
+};
 
 function signalState(entry) {
   if (entry.position_open) return pill('IN POSITION', 'open');
-  if (entry.cooldown) return pill('COOLDOWN', 'wait');
-  if (entry.skip_reason) return pill(entry.skip_reason.toUpperCase().replace(/_/g,' '), 'wait');
+  if (entry.cooldown) return pill('COOLDOWN', 'wait', SKIP_REASON_TEXT.NO_TRADE_COOLDOWN);
+  if (entry.skip_reason) {
+    const label = entry.skip_reason.toUpperCase().replace(/_/g,' ');
+    return pill(label, 'wait', SKIP_REASON_TEXT[entry.skip_reason] || null);
+  }
   if (entry.signal === 'BUY') return pill('BUY', 'buy');
   if (entry.signal === 'SELL') return pill('SELL', 'sell');
   return pill('WAITING', 'wait');
@@ -421,6 +479,7 @@ async function refresh() {
     renderStatus(status);
     renderTrades(trades);
     renderEquity(equity);
+    renderPerformanceStats(trades, equity);
   } catch (e) {
     document.getElementById('subline').textContent = 'Dashboard: could not reach bot status (' + e + ')';
   }
@@ -468,7 +527,10 @@ function renderStatus(s) {
 
   const positions = s.positions || [];
   document.getElementById('posCountVal').textContent = positions.length;
-  document.getElementById('posHint').textContent = positions.length ? `${positions.length} active` : 'No active positions';
+  const maxSlots = s.max_concurrent_trades;
+  document.getElementById('posHint').textContent = maxSlots
+    ? `${positions.length} of ${maxSlots} risk slots used`
+    : (positions.length ? `${positions.length} active` : 'No active positions');
 
   renderPositions(positions, 'positionsTable', 'positionsEmpty', true);
   renderPositions(positions, 'positionsTableMini', 'positionsMiniEmpty', false);
@@ -476,6 +538,7 @@ function renderStatus(s) {
   const signals = s.signals || {};
   renderSignals(signals, 'signalsTable', 'signalsEmpty', true);
   renderSignals(signals, 'signalsTableMini', 'signalsMiniEmpty', false);
+  renderModelQuality(s.model_quality || {});
 
   // Settings view
   document.getElementById('setVersion').textContent = s.bot_version || '–';
@@ -485,6 +548,48 @@ function renderStatus(s) {
   document.getElementById('setStarted').textContent = s.started_at ? fmtTime(s.started_at) : '–';
   document.getElementById('setUpdated').textContent = fmtTime(s.updated_at);
   document.getElementById('setSymbolList').textContent = (s.symbols || []).join('  ·  ') || '–';
+
+  updateAlertBanner(s);
+}
+
+function updateAlertBanner(s) {
+  const banner = document.getElementById('alertBanner');
+  const text = document.getElementById('alertBannerText');
+  const loopInterval = s.loop_interval_seconds || 60;
+  const ageSeconds = (Date.now() - new Date(s.updated_at).getTime()) / 1000;
+
+  let message = null;
+  if (ageSeconds > loopInterval * 3) {
+    const mins = Math.round(ageSeconds / 60);
+    message = `No update from the bot in ${mins} minute${mins === 1 ? '' : 's'} — it may be offline or have lost its broker connection.`;
+  } else if (s.paused && /daily loss/i.test(s.pause_reason || '')) {
+    message = `Daily loss limit reached — trading is paused until it resets. ${s.pause_reason || ''}`;
+  }
+
+  if (message) {
+    banner.style.display = 'flex';
+    text.textContent = message;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function renderModelQuality(quality) {
+  const body = document.querySelector('#modelQualityTable tbody');
+  body.innerHTML = '';
+  const rows = [];
+  Object.keys(quality).sort().forEach(sym => {
+    ['BUY', 'SELL'].forEach(side => {
+      const q = quality[sym][side];
+      if (q) rows.push([sym, side, q]);
+    });
+  });
+  document.getElementById('modelQualityEmpty').style.display = rows.length ? 'none' : 'block';
+  rows.forEach(([sym, side, q]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${sym}</td><td>${pill(side, side === 'BUY' ? 'buy' : 'sell')}</td><td>${pill(q.passed ? 'TRUSTED' : 'REJECTED', q.passed ? 'pass' : 'fail')}</td><td>${q.auc !== undefined ? fmt(q.auc, 3) : '–'}</td><td>${q.precision !== undefined ? fmt(q.precision * 100, 1) + '%' : '–'}</td><td>${q.signals ?? '–'}</td><td>${q.coverage !== undefined ? fmt(q.coverage * 100, 1) + '%' : '–'}</td><td class="muted">${q.reason || (q.passed ? 'Meets all quality-gate thresholds' : '')}</td>`;
+    body.appendChild(tr);
+  });
 }
 
 function renderPositions(positions, tableId, emptyId, full) {
@@ -521,13 +626,61 @@ function renderTrades(trades) {
     body.innerHTML = '';
     document.getElementById(eid).style.display = rows.length ? 'none' : 'block';
     rows.forEach(t => {
-      const eventCls = t.event === 'OPEN' ? 'open' : t.event === 'FAILED' ? 'failed' : 'event';
-      const detail = t.event === 'FAILED' ? (t.error || '') : [t.sl !== undefined ? 'SL '+fmt(t.sl,5) : '', t.tp !== undefined ? 'TP '+fmt(t.tp,5) : ''].filter(Boolean).join(' / ');
+      const eventCls = t.event === 'OPEN' ? 'open' : t.event === 'FAILED' ? 'failed' : t.event === 'CLOSE' ? (t.net_profit >= 0 ? 'buy' : 'sell') : 'event';
+      let detail;
+      if (t.event === 'FAILED') detail = t.error || '';
+      else if (t.event === 'CLOSE') detail = `${fmtMoney(t.net_profit)}${t.r_multiple !== undefined ? ` (${t.r_multiple >= 0 ? '+' : ''}${fmt(t.r_multiple,2)}R)` : ''}`;
+      else detail = [t.sl !== undefined ? 'SL '+fmt(t.sl,5) : '', t.tp !== undefined ? 'TP '+fmt(t.tp,5) : ''].filter(Boolean).join(' / ');
+      const price = t.price !== undefined ? t.price : t.close_price;
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${fmtTime(t.time)}</td><td>${pill(t.event, eventCls)}</td><td>${t.symbol||''}</td><td>${t.side ? pill(t.side, t.side==='BUY'?'buy':'sell') : ''}</td><td>${t.lot!==undefined?fmt(t.lot,2):''}</td><td>${t.price!==undefined?fmt(t.price,5):''}</td><td>${t.prob!==undefined?fmt(t.prob*100,1)+'%':''}</td><td class="muted">${detail}</td>`;
+      tr.innerHTML = `<td>${fmtTime(t.time)}</td><td>${pill(t.event, eventCls)}</td><td>${t.symbol||''}</td><td>${t.side ? pill(t.side, t.side==='BUY'?'buy':'sell') : ''}</td><td>${t.lot!==undefined?fmt(t.lot,2):''}</td><td>${price!==undefined?fmt(price,5):''}</td><td>${t.prob!==undefined?fmt(t.prob*100,1)+'%':''}</td><td class="muted">${detail}</td>`;
       body.appendChild(tr);
     });
   });
+}
+
+function renderPerformanceStats(trades, equity) {
+  const closed = trades.filter(t => t.event === 'CLOSE' && typeof t.net_profit === 'number');
+  const wins = closed.filter(t => t.net_profit > 0);
+
+  const winRateEl = document.getElementById('winRateVal');
+  const winRateHintEl = document.getElementById('winRateHint');
+  if (closed.length > 0) {
+    const winRate = (wins.length / closed.length) * 100;
+    winRateEl.textContent = fmt(winRate, 0) + '%';
+    winRateHintEl.textContent = `${wins.length} of ${closed.length} closed trades`;
+  } else {
+    winRateEl.textContent = '–';
+    winRateHintEl.textContent = 'No closed trades yet';
+  }
+
+  const expectancy = closed.length ? closed.reduce((sum, t) => sum + t.net_profit, 0) / closed.length : null;
+  const today = new Date().toDateString();
+  const todayCount = trades.filter(t => t.event === 'OPEN' && new Date(t.time).toDateString() === today).length;
+
+  const perfWinRate = document.getElementById('perfWinRate');
+  if (perfWinRate) {
+    perfWinRate.textContent = closed.length ? fmt((wins.length / closed.length) * 100, 0) + '%' : '–';
+    document.getElementById('perfExpectancy').textContent = expectancy !== null ? fmtMoney(expectancy) : '–';
+    document.getElementById('perfClosedCount').textContent = closed.length;
+    document.getElementById('perfTodayCount').textContent = todayCount;
+
+    const dd = computeMaxDrawdown(equity);
+    const ddEl = document.getElementById('perfDrawdown');
+    ddEl.textContent = dd !== null ? '-' + fmt(dd, 2) + '%' : '–';
+    ddEl.style.color = dd !== null && dd > 0 ? 'var(--red)' : 'var(--text)';
+  }
+}
+
+function computeMaxDrawdown(points) {
+  if (!points || points.length < 2) return null;
+  let peak = -Infinity, maxDd = 0;
+  points.forEach(p => {
+    if (p.equity === null || p.equity === undefined) return;
+    peak = Math.max(peak, p.equity);
+    if (peak > 0) maxDd = Math.max(maxDd, ((peak - p.equity) / peak) * 100);
+  });
+  return maxDd;
 }
 
 function drawEquity(canvas, points) {
