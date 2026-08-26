@@ -1453,28 +1453,43 @@ def add_tp_sl_targets(
         ):
             continue
 
+        # spread_cost is one flat value for the whole symbol (today's
+        # live spread), but the SL distance below shrinks and grows
+        # with atr bar to bar. Uncapped, a bar with unusually low atr
+        # lets spread_cost exceed sl_mult*atr entirely, which flips the
+        # SL threshold onto the wrong side of the entry price (e.g. a
+        # SELL's "stop" ending up below its own entry) - caught live on
+        # USDDKKm, where this silently collapsed almost every label to
+        # a loss (Positive=0.29%, Signals=0) rather than raising an
+        # error. Capping at half the SL distance keeps the cost's
+        # direction always correct while still making it bite.
+        effective_spread_cost = min(
+            spread_cost,
+            0.5 * sl_mult * atr,
+        )
+
         buy_tp = (
             closes[i] +
             tp_mult * atr +
-            spread_cost
+            effective_spread_cost
         )
 
         buy_sl = (
             closes[i] -
             sl_mult * atr +
-            spread_cost
+            effective_spread_cost
         )
 
         sell_tp = (
             closes[i] -
             tp_mult * atr -
-            spread_cost
+            effective_spread_cost
         )
 
         sell_sl = (
             closes[i] +
             sl_mult * atr -
-            spread_cost
+            effective_spread_cost
         )
 
         buy_result = None
