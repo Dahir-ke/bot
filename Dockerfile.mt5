@@ -98,12 +98,17 @@ RUN wget -q https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/
     && sleep 3 && wineserver -k; true \
     && rm -f webview2.exe
 
-# The broker-branded MT5 terminal - official MetaQuotes CDN, the same
-# infrastructure every broker's build is served from (verified reachable
-# and correctly typed before use here). /auto is MetaQuotes' own documented
-# unattended-install flag. Installing it (not just downloading) registers
-# it in the Wine registry so mt5.initialize() can auto-detect it later
-# with no explicit path.
+# The CORRECT broker-entity terminal - not the generic "MetaTrader 5
+# EXNESS" (exness.technologies.ltd) build every single Wine attempt
+# today actually used. The account's server (ExnessKE-MT5Real9)
+# belongs to a distinct, separately-licensed entity ("Exness (KE)
+# Limited"), with its own terminal build - installing the wrong one is
+# what silently failed account authorization on *every* platform we
+# tried, Wine included, before this was diagnosed. This means none of
+# today's Wine attempts actually isolated whether Wine itself works -
+# they all tested the wrong terminal. Confirmed genuine via exness.ke's
+# own site and the same X-Service: MQL5 API response header as the
+# generic installer.
 #
 # mt5setup.exe is a ~5MB web-installer stub, not the full ~30MB+ terminal
 # - it downloads the real thing itself during install. Confirmed by hand
@@ -113,7 +118,7 @@ RUN wget -q https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/
 # true` stops that from aborting this RUN before the real check below
 # ever runs; terminal64.exe actually existing is the only signal that
 # matters.
-RUN wget -q https://download.mql5.com/cdn/web/exness.technologies.ltd/mt5/exness5setup.exe -O mt5setup.exe \
+RUN wget -q https://download.terminal.free/cdn/web/23032/mt5/exnesske5setup.exe -O mt5setup.exe \
     && (Xvfb :98 -screen 0 1024x768x16 &) \
     && sleep 3 \
     && DISPLAY=:98 wine mt5setup.exe /auto; true \
