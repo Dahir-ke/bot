@@ -185,7 +185,7 @@ MT5_SERVER = os.environ["MT5_SERVER"]
 # SYMBOLS
 # ============================================================
 
-SYMBOLS = [
+_DEFAULT_SYMBOLS = [
     "EURUSDm",
     "USDJPYm",
     "XAUUSDm",
@@ -201,6 +201,20 @@ SYMBOLS = [
     "AUDMXNm",
     "USDDKKm",
 ]
+
+# AUDCZKm/AUDDKKm/AUDHUFm/AUDMXNm/USDDKKm carry 190-1000+ point spreads
+# (13-15x ATR even on a quiet bar) at Exness - the NO_TRADE_SPREAD gate
+# in process_symbol() rejects them every cycle regardless of model
+# quality, so training them is wasted time on live. Kept in the default
+# list (demo runs deliberately loosened spread limits where these can
+# still fire) and overridable per-deployment via SYMBOLS so live can
+# drop them without touching demo.
+_symbols_env = os.environ.get("SYMBOLS")
+SYMBOLS = (
+    [s.strip() for s in _symbols_env.split(",") if s.strip()]
+    if _symbols_env
+    else _DEFAULT_SYMBOLS
+)
 
 
 # ============================================================
