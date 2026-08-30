@@ -308,6 +308,17 @@ MAX_DATA_AGE_MINUTES = 10
 
 LOOP_INTERVAL_SECONDS = 60
 
+# Weekday/UTC-hour gate for spot-forex/CFD market hours - blocks the
+# whole loop (no data fetch, no trading) outside these bounds instead
+# of relying on MAX_DATA_AGE_MINUTES to catch it indirectly via stale
+# bars. Defaults close Friday evening / reopen Sunday evening UTC;
+# adjust via env if a broker's actual session times drift from this
+# (e.g. around DST changes).
+TRADING_CLOSE_WEEKDAY = int(os.environ.get("TRADING_CLOSE_WEEKDAY", "4"))   # Friday
+TRADING_CLOSE_HOUR_UTC = int(os.environ.get("TRADING_CLOSE_HOUR_UTC", "21"))
+TRADING_OPEN_WEEKDAY = int(os.environ.get("TRADING_OPEN_WEEKDAY", "6"))     # Sunday
+TRADING_OPEN_HOUR_UTC = int(os.environ.get("TRADING_OPEN_HOUR_UTC", "21"))
+
 ORDER_DEVIATION = 20
 
 MODEL_MAX_AGE_HOURS = 168
@@ -385,6 +396,55 @@ logging.getLogger().addHandler(console)
 
 def utc_now():
     return datetime.now(timezone.utc)
+
+
+def is_market_open(now=None):
+    """True unless we're in the weekend close window (spot forex/CFDs).
+
+    Blocks all of Saturday, Friday from TRADING_CLOSE_HOUR_UTC onward,
+    and Sunday before TRADING_OPEN_HOUR_UTC. datetime.weekday(): Monday=0
+    ... Sunday=6.
+    """
+    now = now or utc_now()
+    weekday = now.weekday()
+
+    if weekday == 5:
+        return False
+
+    if weekday == TRADING_CLOSE_WEEKDAY and now.hour >= TRADING_CLOSE_HOUR_UTC:
+        return False
+
+    if weekday == TRADING_OPEN_WEEKDAY and now.hour < TRADING_OPEN_HOUR_UTC:
+        return False
+
+    return True
+
+
+def seconds_until_market_open(now=None):
+    """Minutes-granularity scan forward (covers any weekend length safely
+    rather than hand-deriving the next Sunday-open timestamp)."""
+    now = now or utc_now()
+    for minutes_ahead in range(0, 3 * 24 * 60, 5):
+        candidate = now + timedelta(minutes=minutes_ahead)
+        if is_market_open(candidate):
+            return max(0, (candidate - now).total_seconds())
+    return 3600
+
+
+def wait_for_market_open():
+    """Blocks (still honoring shutdown_requested) until the weekend close
+    window ends, so model prep/training never runs against a closed
+    market either - not just live trading."""
+    if is_market_open():
+        return
+
+    logging.info(
+        "Market closed (weekend) - waiting for the next session "
+        "before preparing/training models."
+    )
+
+    while not is_market_open() and not shutdown_requested:
+        time.sleep(min(seconds_until_market_open() + 30, 1800))
 
 
 def safe_float(value, default=0.0):
@@ -4711,6 +4771,8 @@ def run_bot():
     # bot just sat dead until something else relaunched it by hand.
     # Trained-and-found-nothing is a legitimate, expected outcome (model
     # edge can be marginal run to run) and deserves a retry, not a stop.
+    wait_for_market_open()
+
     models_dict = prepare_models()
 
     while not models_dict and not shutdown_requested:
@@ -4760,6 +4822,8 @@ def run_bot():
             LOOP_INTERVAL_SECONDS
         )
 
+        wait_for_market_open()
+
         models_dict = prepare_models()
 
     if shutdown_requested:
@@ -4799,6 +4863,47 @@ def run_bot():
             # ----------------------------------------
 
             update_closed_trades()
+
+            # ----------------------------------------
+            # Trading hours (weekend gate)
+            # ----------------------------------------
+
+            if not is_market_open():
+
+                update_status(
+                    "MARKET_CLOSED",
+                    "Outside trading hours (weekend) - waiting for next session",
+                )
+
+                if status is not None:
+
+                    closed_account = mt5.account_info()
+
+                    status.write_status(
+                        equity=getattr(closed_account, "equity", None),
+                        balance=getattr(closed_account, "balance", None),
+                        daily_loss_pct=0.0,
+                        daily_loss_limit=MAX_DAILY_LOSS_PERCENT,
+                        paused=True,
+                        positions=[],
+                        signals=signals_snapshot,
+                        bot_version=f"v{BOT_VERSION}",
+                        confidence_threshold=CONFIDENCE_THRESHOLD,
+                        symbols=SYMBOLS,
+                        started_at=bot_started_at,
+                        loop_interval_seconds=LOOP_INTERVAL_SECONDS,
+                        model_quality=model_quality_snapshot,
+                        max_concurrent_trades=MAX_CONCURRENT_TRADES,
+                        max_risk_percent=MAX_RISK_PERCENT,
+                        pause_reason="Market closed for the weekend - waiting for the next session to open.",
+                    )
+
+                # Capped rather than sleeping the full remaining weekend in
+                # one call, so a shutdown signal (or a config change) is
+                # noticed within 30 minutes instead of only at reopen.
+                time.sleep(min(seconds_until_market_open() + 30, 1800))
+
+                continue
 
             # ----------------------------------------
             # Daily state

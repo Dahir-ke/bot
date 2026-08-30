@@ -10,7 +10,7 @@ import os
 import joblib
 import signal
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import pandas as pd
 import numpy as np
 import ta
@@ -81,6 +81,14 @@ COOLDOWN_MINUTES = 30
 MAX_DAILY_LOSS_PERCENT = 3.0
 BARS = 1200
 
+# Weekday/UTC-hour gate for spot-forex/CFD market hours - closes Friday
+# evening, reopens Sunday evening UTC. Prevents the bot from trading
+# stale/illiquid weekend quotes.
+TRADING_CLOSE_WEEKDAY = 4   # Friday
+TRADING_CLOSE_HOUR_UTC = 21
+TRADING_OPEN_WEEKDAY = 6    # Sunday
+TRADING_OPEN_HOUR_UTC = 21
+
 # Per-symbol maximum lot size (to further protect against extreme volatility)
 SYMBOL_MAX_LOT = {
     "XAUUSDm": 0.03,   # Gold limited to 0.03 lot
@@ -108,6 +116,33 @@ def has_open_position(symbol):
 
 def is_on_cooldown(symbol):
     return (datetime.now(timezone.utc) - last_trade_time[symbol]).total_seconds() < COOLDOWN_MINUTES * 60
+
+def is_market_open(now=None):
+    """True unless we're in the weekend close window. weekday(): Mon=0 ... Sun=6."""
+    now = now or datetime.now(timezone.utc)
+    weekday = now.weekday()
+    if weekday == 5:
+        return False
+    if weekday == TRADING_CLOSE_WEEKDAY and now.hour >= TRADING_CLOSE_HOUR_UTC:
+        return False
+    if weekday == TRADING_OPEN_WEEKDAY and now.hour < TRADING_OPEN_HOUR_UTC:
+        return False
+    return True
+
+def seconds_until_market_open(now=None):
+    now = now or datetime.now(timezone.utc)
+    for minutes_ahead in range(0, 3 * 24 * 60, 5):
+        candidate = now + timedelta(minutes=minutes_ahead)
+        if is_market_open(candidate):
+            return max(0, (candidate - now).total_seconds())
+    return 3600
+
+def wait_for_market_open():
+    if is_market_open():
+        return
+    logging.info("Market closed (weekend) - waiting for the next session before loading/training models.")
+    while not is_market_open():
+        time.sleep(min(seconds_until_market_open() + 30, 1800))
 
 def get_daily_loss():
     global daily_start_equity
@@ -271,6 +306,8 @@ def run_bot():
     for s in SYMBOLS:
         mt5.symbol_select(s, True)
 
+    wait_for_market_open()
+
     models = {}
     for sym in SYMBOLS:
         try:
@@ -285,6 +322,18 @@ def run_bot():
 
     while True:
         try:
+            if not is_market_open():
+                logging.info("Market closed (weekend) - waiting for next session")
+                status.write_status(
+                    paused=True,
+                    bot_version="v6.4.0",
+                    confidence_threshold=CONFIDENCE_THRESHOLD,
+                    symbols=SYMBOLS,
+                    pause_reason="Market closed for the weekend - waiting for the next session to open.",
+                )
+                time.sleep(min(seconds_until_market_open() + 30, 1800))
+                continue
+
             # Reset daily equity at start of new UTC day
             reset_daily_equity_if_needed()
 
