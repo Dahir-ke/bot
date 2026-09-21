@@ -134,6 +134,7 @@ else:
 
 TIMEFRAME_M5 = 5
 TIMEFRAME_H1 = 16385
+TIMEFRAME_H4 = 16388
 
 ORDER_TYPE_BUY = 0
 ORDER_TYPE_SELL = 1
@@ -146,7 +147,12 @@ MAGIC_NUMBER = 20240601
 
 BOT_VERSION = "8.0.0"
 
-MODEL_VERSION = "SAFE_V8"
+# Bumped from SAFE_V8 when multi-timeframe/regime features were added to
+# FEATURES - load_valid_model() checks this against each cached bundle's
+# stored version, so this forces a clean retrain (via cache miss, not a
+# silent shape mismatch) on the new feature schema rather than trusting
+# an on-disk model trained on the old, shorter FEATURES list.
+MODEL_VERSION = "SAFE_V8_MTF"
 
 # Defaults to next to this file (unchanged local behavior) - the Docker
 # deployment sets BOT_DATA_DIR to a bind-mounted volume (see
@@ -1239,6 +1245,27 @@ FEATURES = [
     "atr_norm_momentum",
     "hour",
     "session",
+    # Added for multi-timeframe/regime awareness - see
+    # add_multi_timeframe_features(). Previously the model only saw
+    # single-timeframe lagging indicators plus hour/session; it had no
+    # notion of higher-timeframe trend context, current-volatility
+    # regime, distance from fair value, spread cost, or momentum beyond
+    # a single 5-bar lookback.
+    "hour_sin",
+    "hour_cos",
+    "momentum_20",
+    "momentum_60",
+    "vol_regime",
+    "dist_vwap",
+    "spread_proxy",
+    "dist_donchian_high",
+    "dist_donchian_low",
+    "h1_ema_trend",
+    "h1_adx",
+    "h1_dist_ema50",
+    "h4_ema_trend",
+    "h4_adx",
+    "h4_dist_ema50",
 ]
 
 
@@ -1399,7 +1426,83 @@ def add_features(df):
         / safe_atr
     )
 
+    df["momentum_20"] = (
+        (df["close"] - df["close"].shift(20))
+        / safe_atr
+    )
+
+    df["momentum_60"] = (
+        (df["close"] - df["close"].shift(60))
+        / safe_atr
+    )
+
+    # Where this bar's volatility sits relative to its own recent
+    # history (0 = quietest, 1 = most volatile in the trailing window) -
+    # a raw ATR value alone doesn't tell the model whether *today's*
+    # ATR is high or low for this instrument.
+    df["vol_regime"] = (
+        df["atr"]
+        .rolling(500, min_periods=100)
+        .rank(pct=True)
+    )
+
+    typical_price = (
+        df["high"] + df["low"] + df["close"]
+    ) / 3
+
+    # Tick volume, not real traded volume (MT5/most FX brokers don't
+    # expose true volume) - a standard proxy, not exact fair value, but
+    # directionally meaningful for how stretched price is from it.
+    volume_proxy = (
+        df["tick_volume"]
+        if "tick_volume" in df.columns
+        else pd.Series(1.0, index=df.index)
+    )
+
+    vwap = (
+        (typical_price * volume_proxy)
+        .rolling(288, min_periods=50)
+        .sum()
+        / volume_proxy.rolling(288, min_periods=50).sum()
+    )
+
+    df["dist_vwap"] = (
+        (df["close"] - vwap) / safe_atr
+    )
+
+    # Per-bar spread in points - a liquidity-cost proxy. Left in raw
+    # points rather than converted to price units: add_features has no
+    # access to the symbol's point size here, and it doesn't need one -
+    # every model is trained on a single symbol, so the points-to-price
+    # conversion factor is constant across a symbol's whole training set
+    # and XGBoost's tree splits are scale-invariant anyway. Degrades to
+    # 0 (neutral) rather than failing training if the column is missing
+    # on a given broker/bridge version.
+    df["spread_proxy"] = (
+        df["spread"].astype(float)
+        if "spread" in df.columns
+        else 0.0
+    )
+
+    df["dist_donchian_high"] = (
+        (df["donchian_high_prev"] - df["close"])
+        / safe_atr
+    )
+
+    df["dist_donchian_low"] = (
+        (df["close"] - df["donchian_low_prev"])
+        / safe_atr
+    )
+
     df["hour"] = df["time"].dt.hour
+
+    df["hour_sin"] = np.sin(
+        2 * np.pi * df["hour"] / 24
+    )
+
+    df["hour_cos"] = np.cos(
+        2 * np.pi * df["hour"] / 24
+    )
 
     df["session"] = np.select(
         [
@@ -1416,6 +1519,145 @@ def add_features(df):
             2,
         ],
         default=0,
+    )
+
+    return df
+
+
+# ============================================================
+# MULTI-TIMEFRAME CONTEXT
+# ============================================================
+#
+# The model previously only saw single-timeframe (M5) lagging indicators
+# - it had no idea whether the higher-timeframe trend agreed, only a
+# post-hoc H1 filter applied after the model already produced a
+# probability (see REQUIRE_H1_ALIGNMENT below). These functions instead
+# feed H1/H4 trend context into the model itself as features.
+#
+# Alignment is done via merge_asof on an "available_at" timestamp (a
+# higher-timeframe bar's own open time plus its full duration), not on
+# the bar's open time directly - merging on open time would let an M5
+# bar anywhere inside a still-forming H1 candle see that same H1
+# candle's (not-yet-final) indicator values, which is look-ahead bias.
+# available_at is the earliest moment that bar's data was actually
+# knowable.
+
+def _htf_context_columns(
+    htf_df,
+    prefix,
+    tf_hours,
+):
+
+    if htf_df is None or len(htf_df) < 60:
+        return None
+
+    htf = add_features(htf_df)
+
+    if htf is None:
+        return None
+
+    safe_atr = htf["atr"].replace(0, np.nan)
+
+    out = pd.DataFrame(
+        {
+            "time": htf["time"],
+            f"{prefix}_ema_trend": (
+                (htf["ema20"] - htf["ema50"]) / safe_atr
+            ),
+            f"{prefix}_adx": htf["adx"],
+            f"{prefix}_dist_ema50": (
+                (htf["close"] - htf["ema50"]) / safe_atr
+            ),
+        }
+    )
+
+    out.dropna(subset=["time"], inplace=True)
+
+    out["available_at"] = out["time"] + pd.Timedelta(
+        hours=tf_hours
+    )
+
+    out.sort_values("available_at", inplace=True)
+
+    return out.drop(columns=["time"])
+
+
+def _merge_htf(
+    df_m5,
+    symbol,
+    timeframe,
+    prefix,
+    tf_hours,
+):
+
+    cols = [
+        f"{prefix}_ema_trend",
+        f"{prefix}_adx",
+        f"{prefix}_dist_ema50",
+    ]
+
+    htf_raw = get_data(
+        symbol,
+        timeframe,
+        closed_only=True,
+    )
+
+    htf_small = _htf_context_columns(
+        htf_raw,
+        prefix,
+        tf_hours,
+    )
+
+    if htf_small is None:
+
+        logging.warning(
+            f"{symbol}: no {prefix.upper()} context available, "
+            f"filling with neutral 0"
+        )
+
+        for col in cols:
+            df_m5[col] = 0.0
+
+        return df_m5
+
+    merged = pd.merge_asof(
+        df_m5.sort_values("time"),
+        htf_small,
+        left_on="time",
+        right_on="available_at",
+        direction="backward",
+    ).drop(columns=["available_at"])
+
+    for col in cols:
+        merged[col] = merged[col].fillna(0.0)
+
+    return merged
+
+
+def add_multi_timeframe_features(
+    df,
+    symbol,
+):
+
+    df = add_features(df)
+
+    if df is None:
+        return None
+
+    df = _merge_htf(
+        df,
+        symbol,
+        TIMEFRAME_H1,
+        "h1",
+        1,
+    )
+
+    df = _merge_htf(
+        df,
+        symbol,
+        TIMEFRAME_H4,
+        "h4",
+        4,
     )
 
     return df
@@ -4300,7 +4542,10 @@ def process_symbol(
 
         return
 
-    df = add_features(df)
+    df = add_multi_timeframe_features(
+        df,
+        symbol,
+    )
 
     if df is None:
 
@@ -4813,7 +5058,10 @@ def prepare_models():
 
                 continue
 
-            df = add_features(df)
+            df = add_multi_timeframe_features(
+                df,
+                symbol,
+            )
 
             if df is None:
                 continue
