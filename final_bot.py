@@ -1773,6 +1773,102 @@ def calibrate_model(
 # WALK FORWARD TRAINING
 # ============================================================
 
+def compute_trade_economics(
+    y_eval,
+    p_eval,
+    threshold,
+    reward_risk,
+):
+
+    # AUC/precision describe how well-ranked the probabilities are, not
+    # what taking the trades would have done to the account - a model can
+    # clear the AUC gate while still being a losing strategy once R:R is
+    # applied. add_tp_sl_targets labels are already binary TP/SL-touch
+    # outcomes at a fixed reward_risk (TP_ATR_MULT/SL_ATR_MULT), so this
+    # reuses the existing walk-forward OOF predictions rather than
+    # re-simulating trades from raw price data.
+
+    high_conf = p_eval >= threshold
+
+    n = int(high_conf.sum())
+
+    if n == 0:
+
+        return {
+            "trades": 0,
+            "win_rate": 0.0,
+            "profit_factor": None,
+            "expectancy_r": 0.0,
+            "total_r": 0.0,
+            "max_drawdown_r": 0.0,
+            "sharpe_per_trade": 0.0,
+            "sortino_per_trade": 0.0,
+        }
+
+    outcomes = y_eval[high_conf]
+
+    returns_r = np.where(
+        outcomes == 1,
+        reward_risk,
+        -1.0,
+    )
+
+    wins = int((outcomes == 1).sum())
+
+    losses = n - wins
+
+    gross_profit = wins * reward_risk
+
+    gross_loss = float(losses)
+
+    # None (not inf) when there are no losing trades yet in this sample -
+    # inf survives Python's json.dump as literal `Infinity`, which is not
+    # valid JSON and breaks JSON.parse on the dashboard side.
+    if gross_loss > 0:
+        profit_factor = gross_profit / gross_loss
+    elif gross_profit > 0:
+        profit_factor = None
+    else:
+        profit_factor = 0.0
+
+    equity_curve = np.cumsum(returns_r)
+
+    running_peak = np.maximum.accumulate(equity_curve)
+
+    max_drawdown_r = float((running_peak - equity_curve).max())
+
+    std_r = float(returns_r.std())
+
+    expectancy_r = float(returns_r.mean())
+
+    sharpe_per_trade = (
+        expectancy_r / std_r if std_r > 0 else 0.0
+    )
+
+    downside = returns_r[returns_r < 0]
+
+    downside_std = (
+        float(downside.std()) if len(downside) > 1 else 0.0
+    )
+
+    sortino_per_trade = (
+        expectancy_r / downside_std
+        if downside_std > 0
+        else 0.0
+    )
+
+    return {
+        "trades": n,
+        "win_rate": wins / n,
+        "profit_factor": profit_factor,
+        "expectancy_r": expectancy_r,
+        "total_r": float(equity_curve[-1]),
+        "max_drawdown_r": max_drawdown_r,
+        "sharpe_per_trade": sharpe_per_trade,
+        "sortino_per_trade": sortino_per_trade,
+    }
+
+
 def train_walk_forward_single_model(
     X,
     y,
@@ -1974,6 +2070,19 @@ def train_walk_forward_single_model(
         high_conf.mean()
     )
 
+    economics = compute_trade_economics(
+        y_eval,
+        p_eval,
+        CONFIDENCE_THRESHOLD,
+        TP_ATR_MULT / SL_ATR_MULT,
+    )
+
+    pf = economics["profit_factor"]
+
+    pf_str = (
+        f"{pf:.2f}" if pf is not None else "n/a"
+    )
+
     logging.info(
         f"{symbol} {side_label} WF | "
         f"AUC={roc_auc:.3f} | "
@@ -1982,7 +2091,10 @@ def train_walk_forward_single_model(
         f"Precision@{CONFIDENCE_THRESHOLD:.2f}="
         f"{precision_high:.2%} | "
         f"Coverage={coverage:.2%} | "
-        f"Signals={high_conf_count}"
+        f"Signals={high_conf_count} | "
+        f"ProfitFactor={pf_str} | "
+        f"ExpectancyR={economics['expectancy_r']:.3f} | "
+        f"MaxDDR={economics['max_drawdown_r']:.2f}"
     )
 
     # --------------------------------------------------------
@@ -2061,6 +2173,13 @@ def train_walk_forward_single_model(
         ),
         "coverage": coverage,
         "signals_high_conf": high_conf_count,
+        "profit_factor": economics["profit_factor"],
+        "expectancy_r": economics["expectancy_r"],
+        "total_r": economics["total_r"],
+        "max_drawdown_r": economics["max_drawdown_r"],
+        "sharpe_per_trade": economics["sharpe_per_trade"],
+        "sortino_per_trade": economics["sortino_per_trade"],
+        "win_rate": economics["win_rate"],
     }
 
     return (
@@ -2091,6 +2210,14 @@ def _record_model_quality(
         "coverage": diagnostics.get("coverage"),
         "passed": passed,
         "reason": reason,
+        # Trading economics on top of the classifier metrics above - see
+        # compute_trade_economics. Informational only: the gate below
+        # still decides pass/fail on AUC and signal count alone, per the
+        # "don't loosen the safety gate to force trades through" guidance.
+        "profit_factor": diagnostics.get("profit_factor"),
+        "expectancy_r": diagnostics.get("expectancy_r"),
+        "max_drawdown_r": diagnostics.get("max_drawdown_r"),
+        "win_rate": diagnostics.get("win_rate"),
     }
 
 
