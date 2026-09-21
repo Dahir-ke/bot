@@ -2460,6 +2460,12 @@ def _record_model_quality(
         "expectancy_r": diagnostics.get("expectancy_r"),
         "max_drawdown_r": diagnostics.get("max_drawdown_r"),
         "win_rate": diagnostics.get("win_rate"),
+        # When THIS symbol/side's walk-forward result was actually
+        # computed - the dashboard's page-level "updated" clock only
+        # says when status.json was last written, not whether a given
+        # row is a result from seconds ago or from before the bot's
+        # last retrain cycle.
+        "trained_at": datetime.now(timezone.utc).isoformat(),
     }
 
 

@@ -496,7 +496,7 @@
     <div class="panel">
       <div class="panel-head"><h2><span class="ic">🧪</span> Model Quality (Walk-Forward)</h2></div>
       <div class="subtext" style="margin:-8px 0 12px;">Per-symbol training results from the most recent quality-gate check — why a model is or isn't trusted to trade, independent of the current bar's filters above. A symbol only actually trades if <b>both</b> BUY and SELL pass; a single passing side is marked INACTIVE if its counterpart doesn't.</div>
-      <div class="table-wrap"><table id="modelQualityTable"><thead><tr><th>Symbol</th><th>Side</th><th>Status</th><th>AUC</th><th>Precision</th><th>Signals</th><th>Coverage</th><th>Reason</th></tr></thead><tbody></tbody></table></div>
+      <div class="table-wrap"><table id="modelQualityTable"><thead><tr><th>Symbol</th><th>Side</th><th>Status</th><th>AUC</th><th>Precision</th><th>Signals</th><th>Coverage</th><th>Reason</th><th>Trained At</th></tr></thead><tbody></tbody></table></div>
       <div class="empty" id="modelQualityEmpty" style="display:none"><span class="ic">🧪</span>No model training results yet.</div>
     </div>
   </div>
@@ -891,7 +891,7 @@ function renderModelQuality(quality) {
       statusLabel = 'REJECTED'; statusCls = 'fail';
       reasonText = q.reason || '';
     }
-    tr.innerHTML = `<td>${sym}</td><td>${pill(side, side === 'BUY' ? 'buy' : 'sell')}</td><td>${pill(statusLabel, statusCls)}</td><td>${q.auc !== undefined ? fmt(q.auc, 3) : '–'}</td><td>${q.precision !== undefined ? fmt(q.precision * 100, 1) + '%' : '–'}</td><td>${q.signals ?? '–'}</td><td>${q.coverage !== undefined ? fmt(q.coverage * 100, 1) + '%' : '–'}</td><td class="muted">${reasonText}</td>`;
+    tr.innerHTML = `<td>${sym}</td><td>${pill(side, side === 'BUY' ? 'buy' : 'sell')}</td><td>${pill(statusLabel, statusCls)}</td><td>${q.auc !== undefined ? fmt(q.auc, 3) : '–'}</td><td>${q.precision !== undefined ? fmt(q.precision * 100, 1) + '%' : '–'}</td><td>${q.signals ?? '–'}</td><td>${q.coverage !== undefined ? fmt(q.coverage * 100, 1) + '%' : '–'}</td><td class="muted">${reasonText}</td><td>${q.trained_at ? fmtTime(q.trained_at) : '–'}</td>`;
     body.appendChild(tr);
   });
 }
