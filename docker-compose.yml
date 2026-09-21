@@ -50,12 +50,22 @@ services:
       - ./data:/app/data
     depends_on:
       - mt5
-    # Deliberately idle on deploy - the trading loop is started manually
-    # (docker compose exec bot python final_bot.py) once everything's
-    # been verified, not automatically. See DEPLOY_CONTABO.md. bo.py/
-    # bot.py stay in the image for reference only - final_bot.py (v8) is
-    # the one script this ever runs.
-    command: ["sleep", "infinity"]
+    # BOT_AUTOSTART=true in .env makes this exec final_bot.py directly as
+    # the container's own PID 1, so Docker's restart:unless-stopped policy
+    # actually supervises the trading loop itself - a crash or an
+    # unexpected SIGTERM (e.g. a dropped `docker exec` session that was
+    # running it in the foreground) now brings it back automatically, the
+    # same protection mt5/dashboard already got for free. `exec` (not a
+    # bare command) replaces the shell as PID 1 so signals reach
+    # final_bot.py directly instead of stopping at the shell.
+    #
+    # Defaults to the old idle sleep-infinity behavior when BOT_AUTOSTART
+    # is unset/false - a fresh deploy still requires deliberately opting
+    # in before it starts trading with real money, rather than silently
+    # resuming on every rebuild. See DEPLOY_CONTABO.md. bo.py/bot.py stay
+    # in the image for reference only - final_bot.py (v8) is the one
+    # script this ever runs.
+    command: ["sh", "-c", "if [ \"$BOT_AUTOSTART\" = \"true\" ]; then exec python final_bot.py; else exec sleep infinity; fi"]
 
   dashboard:
     build:
