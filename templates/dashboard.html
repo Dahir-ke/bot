@@ -416,6 +416,7 @@
   <div class="sub" id="subline" style="margin:-8px 0 18px 2px;">Loading…</div>
 
   <div class="alert-banner" id="alertBanner" style="display:none"><span class="ic">⚠️</span><span id="alertBannerText"></span></div>
+  <div class="alert-banner" id="riskOverrideBanner" style="display:none;background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.4);color:var(--amber)"><span class="ic">🎲</span><span id="riskOverrideBannerText"></span></div>
 
   <div class="cards">
     <div class="card"><div class="icon purple">📈</div><div style="flex:1;"><div class="label">Equity</div><div class="value" id="equityVal">–</div><div class="hint">Total account equity</div></div><svg class="spark" id="sparkEquity" preserveAspectRatio="none"></svg></div>
@@ -835,6 +836,23 @@ function renderStatus(s) {
   }
 
   updateAlertBanner(s);
+  updateRiskOverrideBanner(s);
+}
+
+function updateRiskOverrideBanner(s) {
+  const banner = document.getElementById('riskOverrideBanner');
+  const text = document.getElementById('riskOverrideBannerText');
+  const symbols = s.risk_override_symbols || [];
+
+  if (symbols.length > 0) {
+    banner.style.display = 'flex';
+    text.textContent =
+      `Risk override active on ${symbols.join(', ')} — trading below the normal quality bar ` +
+      `(account owner accepted this on a small account). Every other symbol still uses the full gate. ` +
+      `See Model Quality for the reason on each side.`;
+  } else {
+    banner.style.display = 'none';
+  }
 }
 
 function updateAlertBanner(s) {

@@ -372,6 +372,11 @@ RISK_OVERRIDE_MIN_SIGNALS = int(os.environ.get("RISK_OVERRIDE_MIN_SIGNALS", "5")
 # easier to trigger, only easier to evaluate as "not disqualified."
 RISK_OVERRIDE_EVAL_CONFIDENCE = float(os.environ.get("RISK_OVERRIDE_EVAL_CONFIDENCE", "0.65"))
 
+# Exposed to status.json so the dashboard can show a clear "risk mode"
+# banner instead of the account owner having to infer it from reading
+# Reason strings in the Model Quality table.
+RISK_OVERRIDE_SYMBOLS = sorted({sym for sym, _ in RISK_OVERRIDE_PAIRS})
+
 MAX_NOTIONAL_EQUITY_PERCENT = float(
     os.environ.get("MAX_NOTIONAL_EQUITY_PERCENT", "0.30")
 )
@@ -5274,6 +5279,7 @@ def run_bot():
                 started_at=bot_started_at,
                 loop_interval_seconds=LOOP_INTERVAL_SECONDS,
                 model_quality=model_quality_snapshot,
+                risk_override_symbols=RISK_OVERRIDE_SYMBOLS,
                 max_concurrent_trades=MAX_CONCURRENT_TRADES,
                 max_risk_percent=MAX_RISK_PERCENT,
                 pause_reason=(
@@ -5360,6 +5366,7 @@ def run_bot():
                         started_at=bot_started_at,
                         loop_interval_seconds=LOOP_INTERVAL_SECONDS,
                         model_quality=model_quality_snapshot,
+                        risk_override_symbols=RISK_OVERRIDE_SYMBOLS,
                         max_concurrent_trades=MAX_CONCURRENT_TRADES,
                         max_risk_percent=MAX_RISK_PERCENT,
                         pause_reason="Market closed for the weekend - waiting for the next session to open.",
@@ -5401,6 +5408,7 @@ def run_bot():
                         started_at=bot_started_at,
                 loop_interval_seconds=LOOP_INTERVAL_SECONDS,
                         model_quality=model_quality_snapshot,
+                        risk_override_symbols=RISK_OVERRIDE_SYMBOLS,
                         max_concurrent_trades=MAX_CONCURRENT_TRADES,
                 max_risk_percent=MAX_RISK_PERCENT,
                     )
@@ -5535,6 +5543,7 @@ def run_bot():
                     started_at=bot_started_at,
                 loop_interval_seconds=LOOP_INTERVAL_SECONDS,
                     model_quality=model_quality_snapshot,
+                    risk_override_symbols=RISK_OVERRIDE_SYMBOLS,
                     max_concurrent_trades=MAX_CONCURRENT_TRADES,
                 max_risk_percent=MAX_RISK_PERCENT,
                     kill_switch_active=kill_active,
