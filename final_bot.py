@@ -359,6 +359,19 @@ RISK_OVERRIDE_PAIRS = {
 }
 RISK_OVERRIDE_MIN_SIGNALS = int(os.environ.get("RISK_OVERRIDE_MIN_SIGNALS", "5"))
 
+# The AUC/precision override above turned out not to be enough on its
+# own: a weak-but-not-actively-bad side (USDJPYm SELL, EURUSDm BUY) was
+# still producing zero signals_high_conf in the walk-forward test, since
+# its calibrated probabilities never crossed the real 0.85 confidence
+# bar anywhere in ~9000 bars - there was nothing for the override to let
+# through. This is an EVALUATION-ONLY threshold, used solely to measure
+# whether that weak side has any usable signal history at all so the
+# symbol can become eligible; generate_signal() (real order placement)
+# still uses the full CONFIDENCE_THRESHOLD (0.85) for every symbol
+# including these two, unchanged - so this cannot make a live trade
+# easier to trigger, only easier to evaluate as "not disqualified."
+RISK_OVERRIDE_EVAL_CONFIDENCE = float(os.environ.get("RISK_OVERRIDE_EVAL_CONFIDENCE", "0.65"))
+
 MAX_NOTIONAL_EQUITY_PERCENT = float(
     os.environ.get("MAX_NOTIONAL_EQUITY_PERCENT", "0.30")
 )
@@ -2140,7 +2153,17 @@ def train_walk_forward_single_model(
     y,
     symbol,
     side_label,
+    confidence_threshold=None,
 ):
+
+    # Only overridden for the explicit risk-override pairs (evaluation
+    # only - live order placement in generate_signal() still requires
+    # the real CONFIDENCE_THRESHOLD regardless, so this only affects
+    # whether a weak-but-quiet side can accumulate enough historical
+    # high-confidence signals to be evaluated at all; it never makes a
+    # live trade easier to trigger).
+    if confidence_threshold is None:
+        confidence_threshold = CONFIDENCE_THRESHOLD
 
     if len(X) < MIN_TRAINING_SAMPLES:
 
@@ -2305,7 +2328,7 @@ def train_walk_forward_single_model(
         ll = float("nan")
 
     high_conf = (
-        p_eval >= CONFIDENCE_THRESHOLD
+        p_eval >= confidence_threshold
     )
 
     high_conf_count = int(
@@ -2339,7 +2362,7 @@ def train_walk_forward_single_model(
     economics = compute_trade_economics(
         y_eval,
         p_eval,
-        CONFIDENCE_THRESHOLD,
+        confidence_threshold,
         TP_ATR_MULT / SL_ATR_MULT,
     )
 
@@ -2354,7 +2377,7 @@ def train_walk_forward_single_model(
         f"AUC={roc_auc:.3f} | "
         f"Brier={brier:.4f} | "
         f"LogLoss={ll:.4f} | "
-        f"Precision@{CONFIDENCE_THRESHOLD:.2f}="
+        f"Precision@{confidence_threshold:.2f}="
         f"{precision_high:.2%} | "
         f"Coverage={coverage:.2%} | "
         f"Signals={high_conf_count} | "
@@ -2930,6 +2953,11 @@ def load_or_train_models(
             y_buy,
             symbol,
             "BUY",
+            confidence_threshold=(
+                RISK_OVERRIDE_EVAL_CONFIDENCE
+                if (symbol, "BUY") in RISK_OVERRIDE_PAIRS
+                else None
+            ),
         )
 
         (
@@ -2941,6 +2969,11 @@ def load_or_train_models(
             y_sell,
             symbol,
             "SELL",
+            confidence_threshold=(
+                RISK_OVERRIDE_EVAL_CONFIDENCE
+                if (symbol, "SELL") in RISK_OVERRIDE_PAIRS
+                else None
+            ),
         )
 
         buy_ok = model_passes_quality_gate(
