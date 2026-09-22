@@ -335,6 +335,30 @@ MIN_HIGH_CONF_PRECISION = float(os.environ.get("MIN_HIGH_CONF_PRECISION", "0.50"
 
 MIN_HIGH_CONF_SIGNALS = int(os.environ.get("MIN_HIGH_CONF_SIGNALS", "10"))
 
+# Account owner explicitly requested higher-risk/higher-reward trading on
+# a small ($8) account, accepting it may lose money, and asked to pick
+# specific pairs rather than loosen the gate globally - 2026-09-22.
+# Format: "SYMBOL:SIDE,SYMBOL:SIDE" - BOTH sides of a symbol need an
+# entry, since load_or_train_models() requires both BUY and SELL to
+# independently pass before the symbol trades at all (one failing side
+# drops the whole symbol, regardless of the other side's override).
+# The two symbols chosen (not the specific sides) have genuine (if weak)
+# ranking ability on at least one side - AUC repeatedly above the 0.50
+# coin-flip line across many independent retrains - unlike pairs with
+# AUC below 0.50 on their best side (no real skill anywhere, e.g.
+# XAUUSDm) or pairs with proven strongly-negative expectancy at large
+# sample sizes (e.g. XNGUSDm, AUDCHFm). Their weaker side is accepted as
+# part of the explicitly-requested higher risk, not because it has shown
+# anything. Still requires a minimum signal count so a 1-trade fluke
+# can't pass on either side.
+_risk_override_env = os.environ.get("RISK_OVERRIDE_PAIRS", "")
+RISK_OVERRIDE_PAIRS = {
+    tuple(p.strip().split(":"))
+    for p in _risk_override_env.split(",")
+    if p.strip() and ":" in p
+}
+RISK_OVERRIDE_MIN_SIGNALS = int(os.environ.get("RISK_OVERRIDE_MIN_SIGNALS", "5"))
+
 MAX_NOTIONAL_EQUITY_PERCENT = float(
     os.environ.get("MAX_NOTIONAL_EQUITY_PERCENT", "0.30")
 )
@@ -2484,6 +2508,35 @@ def model_passes_quality_gate(
     signals = diagnostics[
         "signals_high_conf"
     ]
+
+    if (symbol, side) in RISK_OVERRIDE_PAIRS:
+
+        if signals < RISK_OVERRIDE_MIN_SIGNALS:
+
+            reason = (
+                f"risk override active, but only {signals} signals "
+                f"(minimum {RISK_OVERRIDE_MIN_SIGNALS}) - too few to "
+                f"trust even at higher risk tolerance"
+            )
+
+            logging.warning(f"{symbol} {side}: {reason}")
+
+            _record_model_quality(symbol, side, diagnostics, False, reason)
+
+            return False
+
+        reason = (
+            f"RISK OVERRIDE: account owner accepted higher-risk trading "
+            f"on this pair below the normal quality bar "
+            f"(AUC={auc:.3f}, precision={precision_high:.2%}) - "
+            f"2026-09-22"
+        )
+
+        logging.warning(f"{symbol} {side}: {reason}")
+
+        _record_model_quality(symbol, side, diagnostics, True, reason)
+
+        return True
 
     if auc < MIN_MODEL_ROC_AUC:
 
