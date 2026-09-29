@@ -377,6 +377,25 @@ RISK_OVERRIDE_EVAL_CONFIDENCE = float(os.environ.get("RISK_OVERRIDE_EVAL_CONFIDE
 # Reason strings in the Model Quality table.
 RISK_OVERRIDE_SYMBOLS = sorted({sym for sym, _ in RISK_OVERRIDE_PAIRS})
 
+# 2026-09-29: the eval-only override above did its job (EURUSDm/USDJPYm
+# became eligible), but live decisions logged all week show they were
+# then blocked from ever actually firing - NO_TRADE_MODEL_CONFIDENCE and
+# NO_TRADE_LOW_ADX together account for every skip on both symbols, zero
+# trades in 7 days. Account owner explicitly asked to loosen the LIVE
+# gate for these two, not just the evaluation one - unlike
+# RISK_OVERRIDE_EVAL_CONFIDENCE, these two DO make a live trade easier
+# to trigger, only for symbols in RISK_OVERRIDE_SYMBOLS; every other
+# symbol keeps the global CONFIDENCE_THRESHOLD/MIN_ADX unchanged.
+# Defaults: confidence matches the eval bar (0.65) already accepted as
+# reasonable for these two; ADX 12.0 is a real but looser trend-strength
+# floor (still excludes genuinely flat/dead markets, ADX<12). Expect
+# precision to fall well below the 0.85-confidence walk-forward numbers
+# shown on the dashboard - this trades that away for actually trading.
+RISK_OVERRIDE_LIVE_CONFIDENCE = float(
+    os.environ.get("RISK_OVERRIDE_LIVE_CONFIDENCE", "0.65")
+)
+RISK_OVERRIDE_MIN_ADX = float(os.environ.get("RISK_OVERRIDE_MIN_ADX", "12.0"))
+
 MAX_NOTIONAL_EQUITY_PERCENT = float(
     os.environ.get("MAX_NOTIONAL_EQUITY_PERCENT", "0.30")
 )
@@ -4536,6 +4555,7 @@ signal.signal(
 # ============================================================
 
 def generate_signal(
+    symbol,
     buy_prob,
     sell_prob,
 ):
@@ -4548,10 +4568,19 @@ def generate_signal(
         sell_prob
     )
 
+    # See RISK_OVERRIDE_LIVE_CONFIDENCE's definition - unlike
+    # RISK_OVERRIDE_EVAL_CONFIDENCE, this one does change what actually
+    # trades, and only for the two symbols the account owner named.
+    confidence_threshold = (
+        RISK_OVERRIDE_LIVE_CONFIDENCE
+        if symbol in RISK_OVERRIDE_SYMBOLS
+        else CONFIDENCE_THRESHOLD
+    )
+
     gap = buy_prob - sell_prob
 
     if (
-        buy_prob >= CONFIDENCE_THRESHOLD
+        buy_prob >= confidence_threshold
         and gap >= MIN_PROB_GAP
     ):
 
@@ -4562,7 +4591,7 @@ def generate_signal(
         )
 
     if (
-        sell_prob >= CONFIDENCE_THRESHOLD
+        sell_prob >= confidence_threshold
         and -gap >= MIN_PROB_GAP
     ):
 
@@ -4573,8 +4602,8 @@ def generate_signal(
         )
 
     if (
-        buy_prob >= CONFIDENCE_THRESHOLD
-        or sell_prob >= CONFIDENCE_THRESHOLD
+        buy_prob >= confidence_threshold
+        or sell_prob >= confidence_threshold
     ):
 
         return (
@@ -4744,7 +4773,13 @@ def process_symbol(
 
         return
 
-    if adx < MIN_ADX:
+    effective_min_adx = (
+        RISK_OVERRIDE_MIN_ADX
+        if symbol in RISK_OVERRIDE_SYMBOLS
+        else MIN_ADX
+    )
+
+    if adx < effective_min_adx:
 
         log_decision(
             symbol,
@@ -4881,6 +4916,7 @@ def process_symbol(
 
     signal_name, prob, signal_reason = (
         generate_signal(
+            symbol,
             buy_prob,
             sell_prob,
         )
