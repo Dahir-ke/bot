@@ -383,18 +383,42 @@ RISK_OVERRIDE_SYMBOLS = sorted({sym for sym, _ in RISK_OVERRIDE_PAIRS})
 # NO_TRADE_LOW_ADX together account for every skip on both symbols, zero
 # trades in 7 days. Account owner explicitly asked to loosen the LIVE
 # gate for these two, not just the evaluation one - unlike
-# RISK_OVERRIDE_EVAL_CONFIDENCE, these two DO make a live trade easier
-# to trigger, only for symbols in RISK_OVERRIDE_SYMBOLS; every other
-# symbol keeps the global CONFIDENCE_THRESHOLD/MIN_ADX unchanged.
-# Defaults: confidence matches the eval bar (0.65) already accepted as
-# reasonable for these two; ADX 12.0 is a real but looser trend-strength
-# floor (still excludes genuinely flat/dead markets, ADX<12). Expect
-# precision to fall well below the 0.85-confidence walk-forward numbers
-# shown on the dashboard - this trades that away for actually trading.
+# RISK_OVERRIDE_EVAL_CONFIDENCE, these DO make a live trade easier to
+# trigger, only for symbols in RISK_OVERRIDE_SYMBOLS; every other symbol
+# keeps the global CONFIDENCE_THRESHOLD/MIN_ADX/MIN_PROB_GAP/
+# MAX_SPREAD_ATR_RATIO unchanged.
+#
+# ADX 12.0 was enough on its own - confirmed live (USDJPYm's ADX sat at
+# 15-24 right after this shipped, cleanly above 12 but would have failed
+# the old 20). Confidence and the probability gap were not: live
+# buy/sell_prob for USDJPYm sat around 0.24-0.32 for the following hour
+# with a gap of only ~0.05-0.09 - below both the *first* confidence cut
+# (0.65) and MIN_PROB_GAP (0.10), so nothing could have fired regardless
+# of how low confidence alone went. Lowered again, further, 2026-09-29,
+# same day, on explicit request ("bring it lower" / "put it low for it
+# to trade"): confidence to 0.40 (still a real bar - roughly 20pp above
+# what was actually being observed, not zero-discrimination
+# noise-following) and the gap requirement to 0.04 (in range of what was
+# actually observed). Separately, EURUSDm was spread-blocked the whole
+# time (spread_atr_ratio ~0.31-0.35 vs the global 0.30 ceiling, only
+# just over) - added a spread override too, to 0.45, comfortable
+# headroom without removing the check's purpose.
+#
+# Each further cut here trades away more of the walk-forward
+# precision/expectancy shown on the dashboard for these two symbols -
+# Precision@0.85 was already only 18.9%-61.5%, and precision typically
+# gets worse, not better, the lower the bar goes. This is now closer to
+# "let the model have an opinion at all" than "trust a strong signal."
 RISK_OVERRIDE_LIVE_CONFIDENCE = float(
-    os.environ.get("RISK_OVERRIDE_LIVE_CONFIDENCE", "0.65")
+    os.environ.get("RISK_OVERRIDE_LIVE_CONFIDENCE", "0.40")
 )
 RISK_OVERRIDE_MIN_ADX = float(os.environ.get("RISK_OVERRIDE_MIN_ADX", "12.0"))
+RISK_OVERRIDE_MIN_PROB_GAP = float(
+    os.environ.get("RISK_OVERRIDE_MIN_PROB_GAP", "0.04")
+)
+RISK_OVERRIDE_MAX_SPREAD_ATR_RATIO = float(
+    os.environ.get("RISK_OVERRIDE_MAX_SPREAD_ATR_RATIO", "0.45")
+)
 
 MAX_NOTIONAL_EQUITY_PERCENT = float(
     os.environ.get("MAX_NOTIONAL_EQUITY_PERCENT", "0.30")

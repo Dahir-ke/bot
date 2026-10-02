@@ -568,3 +568,63 @@
 2026-04-14 15:00:39 [INFO] ✅ TRADE OPENED → SELL AUDCADm | Lot 0.1 | Risk $0.00 (0.5% of equity)
 2026-04-14 15:00:39 [INFO] ✅ TRADE OPENED → BUY AUDJPYm | Lot 0.1 | Risk $0.01 (0.5% of equity)
 2026-04-14 15:01:39 [WARNING] DAILY LOSS LIMIT HIT (3.9%) → Pausing 1 hour
+2026-08-24 11:44:40 [INFO] === SAFE BOT v6.6.0 STARTED (H1 trend filter, stricter rules) ===
+2026-08-24 11:44:40 [INFO] MT5 connected
+2026-08-24 11:44:40 [INFO] Training new model for EURUSDm...
+2026-08-24 11:44:41 [INFO] Training new model for USDJPYm...
+2026-08-24 11:44:41 [INFO] Training new model for XAUUSDm...
+2026-08-24 11:44:42 [INFO] Training new model for UKOILm...
+2026-08-24 11:44:43 [INFO] Training new model for USOILm...
+2026-08-24 11:44:44 [INFO] Training new model for XNGUSDm...
+2026-08-24 11:44:44 [INFO] Training new model for AUDCADm...
+2026-08-24 11:44:45 [INFO] Training new model for AUDCHFm...
+2026-08-24 11:44:46 [INFO] Training new model for AUDCZKm...
+2026-08-24 11:44:46 [INFO] Training new model for AUDDKKm...
+2026-08-24 11:44:47 [INFO] Training new model for AUDHUFm...
+2026-08-24 11:44:48 [INFO] Training new model for AUDJPYm...
+2026-08-24 11:44:48 [INFO] Training new model for AUDMXNm...
+2026-08-24 11:44:49 [INFO] Training new model for USDDKKm...
+2026-08-24 11:44:49 [INFO] Bot running. Main loop started.
+2026-08-24 11:44:49 [INFO] Daily equity reset: 11.61
+2026-08-24 11:55:56 [INFO] === SAFE BOT v6.6.0 STARTED (H1 trend filter, stricter rules) ===
+2026-08-24 11:55:56 [INFO] MT5 connected
+2026-08-24 11:55:56 [INFO] Model loaded for EURUSDm
+2026-08-24 11:55:56 [INFO] Model loaded for USDJPYm
+2026-08-24 11:55:56 [INFO] Model loaded for XAUUSDm
+2026-08-24 11:55:56 [INFO] Model loaded for UKOILm
+2026-08-24 11:55:56 [INFO] Model loaded for USOILm
+2026-08-24 11:55:56 [INFO] Model loaded for XNGUSDm
+2026-08-24 11:55:56 [INFO] Model loaded for AUDCADm
+2026-08-24 11:55:56 [INFO] Model loaded for AUDCHFm
+2026-08-24 11:55:56 [INFO] Model loaded for AUDCZKm
+2026-08-24 11:55:56 [INFO] Model loaded for AUDDKKm
+2026-08-24 11:55:56 [INFO] Model loaded for AUDHUFm
+2026-08-24 11:55:57 [INFO] Model loaded for AUDJPYm
+2026-08-24 11:55:57 [INFO] Model loaded for AUDMXNm
+2026-08-24 11:55:57 [INFO] Model loaded for USDDKKm
+2026-08-24 11:55:57 [INFO] Bot running. Main loop started.
+2026-08-24 11:55:57 [INFO] Daily equity reset: 11.61
+2026-08-24 12:36:14 [INFO] Running on Windows
+2026-08-24 12:36:14 [INFO] === SAFE BOT v6.4.0 STARTED ===
+2026-08-24 12:36:14 [INFO] Model loaded for EURUSDm
+2026-08-24 12:36:14 [INFO] Model loaded for USDJPYm
+2026-08-24 12:36:14 [INFO] Model loaded for XAUUSDm
+2026-08-24 12:36:14 [INFO] Model loaded for UKOILm
+2026-08-24 12:36:15 [INFO] Model loaded for USOILm
+2026-08-24 12:36:15 [INFO] Model loaded for XNGUSDm
+2026-08-24 12:36:15 [INFO] Model loaded for AUDCADm
+2026-08-24 12:36:15 [INFO] Model loaded for AUDCHFm
+2026-08-24 12:36:15 [INFO] Model loaded for AUDJPYm
+2026-08-24 12:36:15 [INFO] Bot running in SAFE mode with dynamic risk sizing...
+
+2026-08-24 12:36:15 [INFO] Daily equity reset: 11.61
+2026-08-24 12:36:15 [ERROR] Trade failed on EURUSDm: AutoTrading disabled by server (retcode=10026)
+2026-08-24 12:36:15 [ERROR] Trade failed on USDJPYm: AutoTrading disabled by server (retcode=10026)
+2026-08-24 12:36:15 [INFO] High spread on XAUUSDm - skipping
+2026-08-24 12:36:15 [ERROR] Trade failed on UKOILm: AutoTrading disabled by server (retcode=10026)
+2026-08-24 12:36:15 [ERROR] Trade failed on USOILm: AutoTrading disabled by server (retcode=10026)
+2026-08-24 12:36:15 [ERROR] Trade failed on XNGUSDm: Invalid stops (retcode=10016)
+2026-08-24 12:36:15 [ERROR] Trade failed on AUDCADm: AutoTrading disabled by server (retcode=10026)
+2026-08-24 12:36:15 [ERROR] Trade failed on AUDCHFm: AutoTrading disabled by server (retcode=10026)
+2026-08-24 12:36:16 [ERROR] Trade failed on AUDJPYm: AutoTrading disabled by server (retcode=10026)
+2026-08-24 12:36:22 [INFO] Bot shutting down...
