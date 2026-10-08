@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Sign in - Trading Bot Dashboard</title>
+<title>XALIS Bot</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root {
@@ -153,12 +153,43 @@
   .card {
     animation: float 6s ease-in-out infinite;
   }
+  .brand-mark {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card h1 { text-align: center; letter-spacing: -0.01em; }
+  .card .sub {
+    text-align: center;
+    font-size: 0.69rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+  }
 </style>
 </head>
 <body>
 <div class="card">
-  <h1>📈 Trading Bot</h1>
-  <p class="sub">Sign in to view live status and trade history.</p>
+  <div class="brand-mark" aria-hidden="true">
+    <svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
+      <defs>
+        <linearGradient id="xalisMarkLogin" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0E6B45" />
+          <stop offset="55%" stop-color="#2E9E5B" />
+          <stop offset="100%" stop-color="#C9A227" />
+        </linearGradient>
+      </defs>
+      <path d="M5 5 L35 35 M35 5 L5 35" stroke="url(#xalisMarkLogin)" stroke-width="7" stroke-linecap="round" />
+    </svg>
+  </div>
+  <h1>XALIS</h1>
+  <p class="sub">Trading Bot</p>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form method="post">
     <label for="username">Username</label>
