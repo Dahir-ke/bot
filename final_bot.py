@@ -311,6 +311,11 @@ REQUIRE_H1_ALIGNMENT = os.environ.get(
 ).strip().lower() not in ("false", "0", "no")
 
 MAX_DATA_AGE_MINUTES = 10
+# A closed H1 bar is up to an hour old the moment it closes, so it needs
+# the bar's own interval on top of the same grace period.
+H1_MAX_DATA_AGE_MINUTES = float(
+    os.environ.get("H1_MAX_DATA_AGE_MINUTES", "70")
+)
 
 LOOP_INTERVAL_SECONDS = 60
 
@@ -1519,10 +1524,28 @@ def get_data(
     return None
 
 
-def is_data_fresh(df):
+def is_data_fresh(df, max_age_minutes=None):
+    """Is the newest closed bar recent enough to act on?
 
+    The tolerance has to match the bar being judged. The default, 10
+    minutes, is right for M5: a closed M5 bar is at most about five
+    minutes old. It is wrong for H1, where a closed bar is between zero
+    and sixty minutes old by definition - so judging H1 by the M5
+    tolerance declared the hourly data stale for roughly fifty minutes in
+    every hour.
+
+    That is what it was doing. get_h1_trend checks freshness before it
+    looks at any price, so for most of every hour it returned "no trend"
+    regardless of the market, the alignment gate treats "no trend" as
+    "wrong trend", and every trade was rejected. 97 of 97 hourly
+    rejections in the ledger were neutral; not one was a trade going
+    against the trend.
+    """
     if df is None or df.empty:
         return False
+
+    if max_age_minutes is None:
+        max_age_minutes = MAX_DATA_AGE_MINUTES
 
     last_time = df["time"].iloc[-1]
 
@@ -1531,7 +1554,7 @@ def is_data_fresh(df):
         last_time.to_pydatetime()
     ).total_seconds() / 60
 
-    return age <= MAX_DATA_AGE_MINUTES
+    return age <= max_age_minutes
 
 
 # ============================================================
@@ -1993,7 +2016,7 @@ def get_h1_trend(symbol):
     if df is None:
         return 0
 
-    if not is_data_fresh(df):
+    if not is_data_fresh(df, H1_MAX_DATA_AGE_MINUTES):
         return 0
 
     if len(df) < 60:

@@ -298,3 +298,78 @@ def test_the_no_trade_clock_survives_a_restart(tmp_path, monkeypatch):
     assert "NEVER_TRADED" in _kinds(alerts), (
         "a restart hid a month of not trading"
     )
+
+
+# ---------- the freshness check that was judging hourly bars by a
+# ---------- five-minute yardstick
+
+
+def _frame_aged(minutes):
+    """A one-row frame whose newest bar closed `minutes` ago."""
+    import pandas as pd
+
+    stamp = bot.utc_now() - timedelta(minutes=minutes)
+    return pd.DataFrame({"time": [pd.Timestamp(stamp)], "close": [1.0]})
+
+
+def test_an_hourly_bar_is_not_stale_just_because_it_is_not_five_minutes_old():
+    """A closed H1 bar is between zero and sixty minutes old by
+    definition. Judged by the M5 tolerance of ten minutes it was declared
+    stale for roughly fifty minutes in every hour - and get_h1_trend
+    checks freshness before it looks at any price, so for most of every
+    hour it returned "no trend" whatever the market was doing."""
+    forty_minutes_old = _frame_aged(40)
+    assert not bot.is_data_fresh(forty_minutes_old), (
+        "this must still be stale by the M5 yardstick"
+    )
+    assert bot.is_data_fresh(forty_minutes_old, bot.H1_MAX_DATA_AGE_MINUTES), (
+        "an hourly bar forty minutes old is perfectly current"
+    )
+
+
+def test_the_five_minute_path_is_unchanged():
+    """The M5 tolerance must not be loosened by the H1 fix - trading on
+    genuinely stale M5 data is a different and worse failure."""
+    assert bot.is_data_fresh(_frame_aged(3))
+    assert not bot.is_data_fresh(_frame_aged(30))
+
+
+def test_a_genuinely_dead_hourly_feed_is_still_caught():
+    """Tolerant of an hour, not of a broken feed."""
+    assert not bot.is_data_fresh(_frame_aged(400), bot.H1_MAX_DATA_AGE_MINUTES)
+
+
+def test_the_hourly_tolerance_covers_a_whole_bar():
+    """If it ever drops below sixty it reintroduces the bug for part of
+    each hour, which is exactly how this went unnoticed."""
+    assert bot.H1_MAX_DATA_AGE_MINUTES > 60
+
+
+def test_get_h1_trend_reads_a_forty_minute_old_bar(monkeypatch):
+    """The end-to-end version, with freshness NOT stubbed out.
+
+    An earlier test here patched is_data_fresh to True, which hid the
+    very bug it was supposed to catch: get_h1_trend rejects on staleness
+    before it looks at a single price, so the trend logic below it was
+    never reached for most of each hour. This one lets the real check
+    run against a bar aged like a real one.
+    """
+    import pandas as pd
+
+    rows = 60
+    stamp = bot.utc_now() - timedelta(minutes=40)
+    frame = pd.DataFrame({
+        "time": [pd.Timestamp(stamp)] * rows,
+        "close": [1.10] * rows,
+        "ema20": [1.09] * rows,
+        "ema50": [1.07 + i * 0.0002 for i in range(rows)],
+        "adx": [25.0] * rows,
+    })
+    monkeypatch.setattr(bot, "get_data", lambda *a, **k: frame)
+    monkeypatch.setattr(bot, "add_features", lambda df: df)
+
+    symbol = sorted(bot.RISK_OVERRIDE_SYMBOLS)[0]
+    assert bot.get_h1_trend(symbol) == 1, (
+        "an hourly bar forty minutes old was treated as stale, so the "
+        "trend was reported neutral and every trade would be rejected"
+    )
