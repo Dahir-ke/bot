@@ -279,7 +279,14 @@ MIN_PROB_GAP = float(os.environ.get("MIN_PROB_GAP", "0.10"))
 
 COOLDOWN_MINUTES = float(os.environ.get("COOLDOWN_MINUTES", "30"))
 
-MAX_DAILY_LOSS_PERCENT = 3.0
+# Env-driven so it can be matched to the account rather than edited in
+# source. On a very small account this is not a free choice: the broker's
+# minimum lot of 0.01 risks about 9% of an $8 balance at a 1.8x ATR stop,
+# so a 3% daily limit is tripped by the first trade that loses and the
+# bot halts for the day before it has done anything.
+MAX_DAILY_LOSS_PERCENT = float(
+    os.environ.get("MAX_DAILY_LOSS_PERCENT", "3.0")
+)
 
 MAX_CONCURRENT_TRADES = 3
 
