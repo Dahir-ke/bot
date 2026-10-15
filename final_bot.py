@@ -1087,6 +1087,35 @@ def unreachable_symbols(models_dict, lookback_hours=None):
     return stuck
 
 
+def hours_since_first_decision():
+    """How long this bot has been thinking, across every restart.
+
+    Process uptime is the wrong clock for "it has not traded in ages":
+    this container restarts for deploys and crashes, and each restart
+    would reset the count. A bot that has never traded in a month of
+    weekly restarts would never have reached a three-day threshold - the
+    alert would be as silent as the thing it is meant to catch.
+    """
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        row = conn.execute("SELECT MIN(timestamp) FROM decisions").fetchone()
+        conn.close()
+    except Exception as exc:
+        logging.error(f"first-decision check failed: {exc}")
+        return None
+
+    if not row or not row[0]:
+        return None
+
+    try:
+        first = datetime.fromisoformat(row[0])
+        if first.tzinfo is None:
+            first = first.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - first).total_seconds() / 3600.0
+    except Exception:
+        return None
+
+
 def hours_since_last_order():
     """None when no order has ever been placed - which is itself the
     answer that went unnoticed here for a month."""
@@ -1144,9 +1173,16 @@ def run_watchdog(models_dict, started_at):
         ))
 
     idle = hours_since_last_order()
-    running_hours = (
-        datetime.now(timezone.utc) - started_at
-    ).total_seconds() / 3600.0
+
+    # Measured from the first decision ever recorded, not from this
+    # process's start - see hours_since_first_decision. Falls back to
+    # process uptime only when the ledger is empty, which is a genuinely
+    # new install.
+    running_hours = hours_since_first_decision()
+    if running_hours is None:
+        running_hours = (
+            datetime.now(timezone.utc) - started_at
+        ).total_seconds() / 3600.0
 
     if idle is None:
         if running_hours >= ALERT_NO_TRADE_DAYS * 24:

@@ -212,11 +212,17 @@ def test_a_symbol_that_does_reach_its_threshold_raises_nothing(
 
 def test_it_shouts_when_nothing_has_ever_traded(tmp_path, monkeypatch):
     """`orders` had zero rows for the entire life of the bot and nothing
-    ever said so."""
+    ever said so.
+
+    The ledger has to show a long history, not just a long-running
+    process - how long it has been thinking is what counts, and that is
+    the only thing a restart cannot reset."""
+    old_row = (_now() - timedelta(days=30)).isoformat()
     recent = (_now() - timedelta(hours=1)).isoformat()
     _ledger(
         tmp_path, monkeypatch,
-        decisions=[(recent, "EURUSDm", 0.80, 0.05) for _ in range(50)],
+        decisions=[(old_row, "EURUSDm", 0.80, 0.05)]
+                  + [(recent, "EURUSDm", 0.80, 0.05) for _ in range(50)],
     )
     alerts = bot.run_watchdog(
         {"EURUSDm": {}}, started_at=_now() - timedelta(days=30),
@@ -270,3 +276,25 @@ def test_a_broken_webhook_cannot_stop_the_bot(tmp_path, monkeypatch):
     monkeypatch.setattr(bot, "ALERT_WEBHOOK_URL", "http://127.0.0.1:9/nowhere")
     alerts = bot.run_watchdog({}, started_at=_now())
     assert "NO_MODELS" in _kinds(alerts)
+
+
+def test_the_no_trade_clock_survives_a_restart(tmp_path, monkeypatch):
+    """The flaw in the first version of this watchdog: it measured from
+    process start, so a bot restarted weekly could never reach a
+    three-day silence threshold however long it had truly been dead.
+
+    Here the ledger shows a month of thinking and no orders, while the
+    process came up a minute ago."""
+    old = (_now() - timedelta(days=30)).isoformat()
+    recent = (_now() - timedelta(hours=1)).isoformat()
+    _ledger(
+        tmp_path, monkeypatch,
+        decisions=[(old, "EURUSDm", 0.80, 0.05)]
+                  + [(recent, "EURUSDm", 0.80, 0.05) for _ in range(20)],
+    )
+    alerts = bot.run_watchdog(
+        {"EURUSDm": {}}, started_at=_now() - timedelta(minutes=1),
+    )
+    assert "NEVER_TRADED" in _kinds(alerts), (
+        "a restart hid a month of not trading"
+    )
