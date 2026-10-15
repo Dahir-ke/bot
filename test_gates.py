@@ -430,3 +430,36 @@ def test_an_alert_speaks_again_once_the_quiet_period_passes(tmp_path, monkeypatc
     count = conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0]
     conn.close()
     assert count == 2
+
+
+# ---------- gates taken off the two named pairs, 2026-10-15
+
+
+def test_the_hourly_filter_is_off_for_the_override_pairs():
+    assert bot.RISK_OVERRIDE_REQUIRE_H1_ALIGNMENT is False
+
+
+def test_the_rsi_extremes_are_off_for_the_override_pairs():
+    assert bot.RISK_OVERRIDE_APPLY_RSI_EXTREMES is False
+
+
+def test_other_symbols_keep_the_hourly_filter():
+    """The relaxation must stay on the two pairs it was granted to."""
+    assert bot.REQUIRE_H1_ALIGNMENT is True
+
+
+def test_an_override_pair_uses_its_own_probability_gap():
+    """generate_signal read the global gap (0.10) even for pairs with
+    their own (0.04) - an override applied in some places and not others,
+    the same shape as every other fault in this file."""
+    symbol = sorted(bot.RISK_OVERRIDE_SYMBOLS)[0]
+    buy = bot.RISK_OVERRIDE_LIVE_CONFIDENCE + 0.01
+    sell = buy - 0.05          # a 0.05 gap: clears 0.04, not 0.10
+    name, _, _ = bot.generate_signal(symbol, buy_prob=buy, sell_prob=sell)
+    assert name == "BUY", "the override pair was held to the global gap"
+
+
+def test_a_normal_symbol_still_needs_the_wider_gap():
+    assert "XAUUSDm" not in bot.RISK_OVERRIDE_SYMBOLS
+    name, _, _ = bot.generate_signal("XAUUSDm", buy_prob=0.90, sell_prob=0.85)
+    assert name is None

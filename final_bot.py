@@ -433,6 +433,18 @@ RISK_OVERRIDE_MIN_PROB_GAP = float(
 RISK_OVERRIDE_MAX_SPREAD_ATR_RATIO = float(
     os.environ.get("RISK_OVERRIDE_MAX_SPREAD_ATR_RATIO", "0.45")
 )
+# Signal filters the account owner asked to be taken off the two named
+# pairs entirely, 2026-10-15, after a month of no trades. These skip
+# the hourly-trend agreement and the RSI extremes for those pairs only;
+# every other symbol keeps both. Position sizing, stop loss, the daily
+# loss limit and the kill switch are untouched by any of this - they
+# decide how much is risked, not whether a signal is allowed to fire.
+RISK_OVERRIDE_REQUIRE_H1_ALIGNMENT = os.environ.get(
+    "RISK_OVERRIDE_REQUIRE_H1_ALIGNMENT", "false"
+).strip().lower() in ("1", "true", "yes")
+RISK_OVERRIDE_APPLY_RSI_EXTREMES = os.environ.get(
+    "RISK_OVERRIDE_APPLY_RSI_EXTREMES", "false"
+).strip().lower() in ("1", "true", "yes")
 
 MAX_NOTIONAL_EQUITY_PERCENT = float(
     os.environ.get("MAX_NOTIONAL_EQUITY_PERCENT", "0.30")
@@ -4936,12 +4948,21 @@ def generate_signal(
         else CONFIDENCE_THRESHOLD
     )
 
+    # The gap was still read from the global MIN_PROB_GAP (0.10) even for
+    # override pairs, which have their own (0.04) - another override that
+    # had been applied in some places and not others.
+    min_gap = (
+        RISK_OVERRIDE_MIN_PROB_GAP
+        if symbol in RISK_OVERRIDE_SYMBOLS
+        else MIN_PROB_GAP
+    )
+
     gap = buy_prob - sell_prob
 
     if (
         "BUY" in allowed_sides
         and buy_prob >= confidence_threshold
-        and gap >= MIN_PROB_GAP
+        and gap >= min_gap
     ):
 
         return (
@@ -4953,7 +4974,7 @@ def generate_signal(
     if (
         "SELL" in allowed_sides
         and sell_prob >= confidence_threshold
-        and -gap >= MIN_PROB_GAP
+        and -gap >= min_gap
     ):
 
         return (
@@ -5332,8 +5353,14 @@ def process_symbol(
         symbol
     )
 
+    require_h1 = (
+        RISK_OVERRIDE_REQUIRE_H1_ALIGNMENT
+        if symbol in RISK_OVERRIDE_SYMBOLS
+        else REQUIRE_H1_ALIGNMENT
+    )
+
     if (
-        REQUIRE_H1_ALIGNMENT
+        require_h1
         and signal_name == "BUY"
         and h1_trend != 1
     ):
@@ -5357,7 +5384,7 @@ def process_symbol(
         return
 
     if (
-        REQUIRE_H1_ALIGNMENT
+        require_h1
         and signal_name == "SELL"
         and h1_trend != -1
     ):
@@ -5380,8 +5407,15 @@ def process_symbol(
 
         return
 
+    apply_rsi = (
+        RISK_OVERRIDE_APPLY_RSI_EXTREMES
+        if symbol in RISK_OVERRIDE_SYMBOLS
+        else True
+    )
+
     if (
-        signal_name == "BUY"
+        apply_rsi
+        and signal_name == "BUY"
         and rsi >= MAX_RSI
     ):
 
@@ -5405,6 +5439,7 @@ def process_symbol(
 
     if (
         signal_name == "SELL"
+        and apply_rsi
         and rsi <= MIN_RSI
     ):
 
