@@ -974,6 +974,200 @@ def reset_daily_equity_if_needed():
 
 
 # ============================================================
+# WATCHDOG
+# ============================================================
+#
+# This exists because the bot ran for a month placing no orders and told
+# nobody. It was not down - it logged "Daily reset" every day, reported
+# RUNNING, and the dashboard showed green. The roster had quietly dropped
+# from two symbols to one, and the one left had never once produced a
+# probability that could clear its own threshold.
+#
+# "Healthy" has to mean "capable of trading", not "the process is alive".
+
+ALERT_WEBHOOK_URL = os.environ.get("ALERT_WEBHOOK_URL", "").strip()
+ALERT_NO_TRADE_DAYS = float(os.environ.get("ALERT_NO_TRADE_DAYS", "3"))
+ALERT_MIN_READY_SYMBOLS = int(os.environ.get("ALERT_MIN_READY_SYMBOLS", "1"))
+# How close the best probability seen must get to the threshold before we
+# call the symbol reachable. 0.9 means "it got within 10% of the bar".
+ALERT_REACHABLE_RATIO = float(os.environ.get("ALERT_REACHABLE_RATIO", "0.9"))
+ALERT_LOOKBACK_HOURS = float(os.environ.get("ALERT_LOOKBACK_HOURS", "48"))
+WATCHDOG_INTERVAL_SECONDS = float(
+    os.environ.get("WATCHDOG_INTERVAL_SECONDS", "3600")
+)
+
+
+def record_alert(kind, message):
+    """Log it loudly, keep it, and push it out if a channel is configured.
+
+    The record survives a restart, so the dashboard and any later
+    investigation can see what was wrong and when - the thing that was
+    missing when this had to be reconstructed from the decisions table by
+    hand.
+    """
+    logging.error(f"ALERT [{kind}] {message}")
+
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS alerts ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "timestamp TEXT, kind TEXT, message TEXT)"
+        )
+        conn.execute(
+            "INSERT INTO alerts (timestamp, kind, message) VALUES (?, ?, ?)",
+            (datetime.now(timezone.utc).isoformat(), kind, message),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as exc:
+        logging.error(f"could not record alert: {exc}")
+
+    if not ALERT_WEBHOOK_URL:
+        return
+
+    # Best effort and never fatal: an alert that cannot be delivered must
+    # not take the trading loop down with it.
+    try:
+        import json as _json
+        import urllib.request
+
+        payload = _json.dumps({"text": f"[{kind}] {message}"}).encode()
+        request = urllib.request.Request(
+            ALERT_WEBHOOK_URL,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        urllib.request.urlopen(request, timeout=10).read()
+    except Exception as exc:
+        logging.error(f"could not deliver alert: {exc}")
+
+
+def unreachable_symbols(models_dict, lookback_hours=None):
+    """Live symbols whose own threshold no recent probability came near.
+
+    A symbol that is loaded, evaluated every loop, and arithmetically
+    incapable of signalling is not being strict - it is off, while
+    reporting itself ready.
+    """
+    lookback_hours = (
+        ALERT_LOOKBACK_HOURS if lookback_hours is None else lookback_hours
+    )
+    since = (
+        datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
+    ).isoformat()
+
+    stuck = []
+
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        for symbol in sorted(models_dict):
+            threshold = (
+                RISK_OVERRIDE_LIVE_CONFIDENCE
+                if symbol in RISK_OVERRIDE_SYMBOLS
+                else CONFIDENCE_THRESHOLD
+            )
+            row = conn.execute(
+                "SELECT COUNT(*), MAX(buy_prob), MAX(sell_prob) "
+                "FROM decisions WHERE symbol = ? AND timestamp >= ?",
+                (symbol, since),
+            ).fetchone()
+
+            seen, best_buy, best_sell = row or (0, None, None)
+            if not seen:
+                continue
+
+            best = max(best_buy or 0.0, best_sell or 0.0)
+            if best < threshold * ALERT_REACHABLE_RATIO:
+                stuck.append((symbol, best, threshold, seen))
+        conn.close()
+    except Exception as exc:
+        logging.error(f"unreachable-symbol check failed: {exc}")
+
+    return stuck
+
+
+def hours_since_last_order():
+    """None when no order has ever been placed - which is itself the
+    answer that went unnoticed here for a month."""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        row = conn.execute("SELECT MAX(timestamp) FROM orders").fetchone()
+        conn.close()
+    except Exception as exc:
+        logging.error(f"last-order check failed: {exc}")
+        return None
+
+    if not row or not row[0]:
+        return None
+
+    try:
+        last = datetime.fromisoformat(row[0])
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - last).total_seconds() / 3600.0
+    except Exception:
+        return None
+
+
+def run_watchdog(models_dict, started_at):
+    """Everything that should have shouted and did not. Returns the alerts
+    raised, so it can be tested without reading a log."""
+    raised = []
+
+    ready = len(models_dict)
+    if ready < ALERT_MIN_READY_SYMBOLS:
+        raised.append((
+            "NO_MODELS",
+            f"{ready} of {len(SYMBOLS)} symbols have a usable model - "
+            f"the bot cannot trade anything",
+        ))
+
+    stuck = unreachable_symbols(models_dict)
+    if stuck and len(stuck) == ready:
+        detail = ", ".join(
+            f"{sym} best={best:.3f} vs threshold {thr:.2f} over {seen} decisions"
+            for sym, best, thr, seen in stuck
+        )
+        raised.append((
+            "ALL_SYMBOLS_UNREACHABLE",
+            f"every live symbol is below its own threshold: {detail}",
+        ))
+    elif stuck:
+        detail = ", ".join(
+            f"{sym} best={best:.3f} vs threshold {thr:.2f}"
+            for sym, best, thr, _ in stuck
+        )
+        raised.append((
+            "SYMBOL_UNREACHABLE",
+            f"loaded but cannot signal: {detail}",
+        ))
+
+    idle = hours_since_last_order()
+    running_hours = (
+        datetime.now(timezone.utc) - started_at
+    ).total_seconds() / 3600.0
+
+    if idle is None:
+        if running_hours >= ALERT_NO_TRADE_DAYS * 24:
+            raised.append((
+                "NEVER_TRADED",
+                f"no order has ever been placed, and the bot has been "
+                f"running {running_hours / 24:.1f} days",
+            ))
+    elif idle >= ALERT_NO_TRADE_DAYS * 24:
+        raised.append((
+            "NO_RECENT_TRADES",
+            f"no order placed in {idle / 24:.1f} days",
+        ))
+
+    for kind, message in raised:
+        record_alert(kind, message)
+
+    return raised
+
+
+# ============================================================
 # KILL SWITCH
 # ============================================================
 
@@ -1781,18 +1975,30 @@ def get_h1_trend(symbol):
         df["ema50"].iloc[-5]
     )
 
+    # The same ADX floor the rest of the pipeline uses for this symbol. A
+    # risk-override pair was being judged here against the global 20.0
+    # while its own gates ran at 12.0, so it passed every loosened check
+    # and then failed on an hourly trend that was merely "not strong
+    # enough to register". Across 2026-10-02 to 10-15 that accounted for
+    # 97 of 97 hourly rejections: every one NEUTRAL, none opposing.
+    h1_min_adx = (
+        RISK_OVERRIDE_MIN_ADX
+        if symbol in RISK_OVERRIDE_SYMBOLS
+        else MIN_ADX
+    )
+
     up = (
         last["close"] > last["ema50"]
         and last["ema20"] > last["ema50"]
         and ema50_slope > 0
-        and last["adx"] >= MIN_ADX
+        and last["adx"] >= h1_min_adx
     )
 
     down = (
         last["close"] < last["ema50"]
         and last["ema20"] < last["ema50"]
         and ema50_slope < 0
-        and last["adx"] >= MIN_ADX
+        and last["adx"] >= h1_min_adx
     )
 
     if up:
@@ -3036,16 +3242,34 @@ def load_or_train_models(
             "SELL",
         )
 
-        if not buy_ok:
+        # A weak side disables that side, not the whole pair.
+        #
+        # On 2026-10-08 USDJPYm's BUY model passed the override bar it was
+        # granted (AUC 0.542, precision 28.63%, 227 signals) and its SELL
+        # model produced 3 walk-forward signals against a minimum of 5.
+        # Because this gate was per-symbol, the pair was switched off
+        # entirely - taking the only model in the account that was still
+        # generating confident signals with it, and leaving one symbol
+        # live that had never once cleared its own threshold.
+        #
+        # Both sides failing still fails the symbol: there is nothing left
+        # to trade.
+        if not buy_ok and not sell_ok:
             raise ValueError(
-                f"{symbol}: BUY model "
+                f"{symbol}: both BUY and SELL models "
                 "failed quality gate"
             )
 
+        if not buy_ok:
+            logging.warning(
+                f"{symbol}: BUY model failed quality gate - "
+                f"trading SELL only"
+            )
+
         if not sell_ok:
-            raise ValueError(
-                f"{symbol}: SELL model "
-                "failed quality gate"
+            logging.warning(
+                f"{symbol}: SELL model failed quality gate - "
+                f"trading BUY only"
             )
 
         buy_path = save_model_bundle(
@@ -3054,7 +3278,7 @@ def load_or_train_models(
             buy_model_obj,
             buy_scaler,
             buy_diag,
-        )
+        ) if buy_ok else None
 
         sell_path = save_model_bundle(
             symbol,
@@ -3062,26 +3286,38 @@ def load_or_train_models(
             sell_model_obj,
             sell_scaler,
             sell_diag,
+        ) if sell_ok else None
+
+        saved = " | ".join(
+            path.name
+            for path in (buy_path, sell_path)
+            if path is not None
         )
 
         logging.info(
-            f"{symbol}: models saved | "
-            f"{buy_path.name} | "
-            f"{sell_path.name}"
+            f"{symbol}: models saved | {saved}"
         )
 
-        return {
-            "BUY": (
+        # A side that did not pass is absent from the bundle, so nothing
+        # downstream can signal on it - generate_signal checks for it by
+        # name rather than relying on a flag somebody might forget.
+        bundle = {}
+
+        if buy_ok:
+            bundle["BUY"] = (
                 buy_model_obj,
                 buy_scaler,
                 FEATURES,
-            ),
-            "SELL": (
+            )
+
+        if sell_ok:
+            bundle["SELL"] = (
                 sell_model_obj,
                 sell_scaler,
                 FEATURES,
-            ),
-        }
+            )
+
+        return bundle
 
     finally:
 
@@ -4582,7 +4818,17 @@ def generate_signal(
     symbol,
     buy_prob,
     sell_prob,
+    allowed_sides=None,
 ):
+    """Which way to trade, if either.
+
+    `allowed_sides` is the set of sides whose model passed its quality
+    gate. A side that is not in it cannot be returned no matter what its
+    probability says - the probability of a side with no model is not a
+    weak opinion, it is no opinion.
+    """
+    if allowed_sides is None:
+        allowed_sides = {"BUY", "SELL"}
 
     buy_prob = normalize_probability(
         buy_prob
@@ -4604,7 +4850,8 @@ def generate_signal(
     gap = buy_prob - sell_prob
 
     if (
-        buy_prob >= confidence_threshold
+        "BUY" in allowed_sides
+        and buy_prob >= confidence_threshold
         and gap >= MIN_PROB_GAP
     ):
 
@@ -4615,7 +4862,8 @@ def generate_signal(
         )
 
     if (
-        sell_prob >= confidence_threshold
+        "SELL" in allowed_sides
+        and sell_prob >= confidence_threshold
         and -gap >= MIN_PROB_GAP
     ):
 
@@ -4868,21 +5116,42 @@ def process_symbol(
 
         return
 
-    buy_model, buy_scaler, buy_features = (
-        model_bundle["BUY"]
-    )
+    # A side whose model failed its quality gate is not in the bundle at
+    # all. Its probability stays at zero, which cannot clear any
+    # threshold, so it can never be signalled.
+    buy_model = buy_scaler = None
+    sell_model = sell_scaler = None
 
-    sell_model, sell_scaler, sell_features = (
-        model_bundle["SELL"]
-    )
+    if "BUY" in model_bundle:
+        buy_model, buy_scaler, buy_features = (
+            model_bundle["BUY"]
+        )
 
-    if (
-        buy_features != FEATURES
-        or sell_features != FEATURES
-    ):
+        if buy_features != FEATURES:
+
+            logging.error(
+                f"{symbol}: BUY model feature mismatch"
+            )
+
+            return
+
+    if "SELL" in model_bundle:
+        sell_model, sell_scaler, sell_features = (
+            model_bundle["SELL"]
+        )
+
+        if sell_features != FEATURES:
+
+            logging.error(
+                f"{symbol}: SELL model feature mismatch"
+            )
+
+            return
+
+    if buy_model is None and sell_model is None:
 
         logging.error(
-            f"{symbol}: model feature mismatch"
+            f"{symbol}: no usable model side"
         )
 
         return
@@ -4913,13 +5182,16 @@ def process_symbol(
 
     try:
 
+        # A side with no model scores zero rather than being guessed at.
+        # Zero clears no threshold, and generate_signal refuses the side
+        # outright as well - two independent reasons it cannot trade.
         buy_prob = float(
             buy_model.predict_proba(
                 buy_scaler.transform(
                     latest
                 )
             )[0][1]
-        )
+        ) if buy_model is not None else 0.0
 
         sell_prob = float(
             sell_model.predict_proba(
@@ -4927,7 +5199,7 @@ def process_symbol(
                     latest
                 )
             )[0][1]
-        )
+        ) if sell_model is not None else 0.0
 
     except Exception as exc:
 
@@ -4943,6 +5215,7 @@ def process_symbol(
             symbol,
             buy_prob,
             sell_prob,
+            allowed_sides=set(model_bundle),
         )
     )
 
@@ -5385,9 +5658,29 @@ def run_bot():
         "Models ready",
     )
 
+    # The watchdog runs on its own clock, not every loop - it reads the
+    # ledger, and the answer cannot change meaningfully in 15 seconds.
+    bot_started_at = datetime.now(timezone.utc)
+    last_watchdog = 0.0
+
+    # One pass immediately, so a bot that comes up unable to trade says so
+    # at once instead of after the first interval.
+    try:
+        run_watchdog(models_dict, bot_started_at)
+        last_watchdog = time.time()
+    except Exception as exc:
+        logging.error(f"watchdog failed: {exc}")
+
     while not shutdown_requested:
 
         loop_start = time.time()
+
+        if time.time() - last_watchdog >= WATCHDOG_INTERVAL_SECONDS:
+            try:
+                run_watchdog(models_dict, bot_started_at)
+            except Exception as exc:
+                logging.error(f"watchdog failed: {exc}")
+            last_watchdog = time.time()
 
         try:
 
