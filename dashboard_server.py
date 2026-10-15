@@ -10,6 +10,7 @@ bot - see docker-compose.yml.
 import hmac
 import json
 import os
+import sqlite3
 from datetime import datetime, timezone
 from functools import wraps
 
@@ -23,6 +24,11 @@ EQUITY_FILE = os.path.join(BASE_DIR, "equity_curve.jsonl")
 # write path the dashboard has into the bot's world, so the exact
 # filename/location has to match on both sides of the shared volume.
 KILL_SWITCH_FILE = os.path.join(BASE_DIR, "kill_switch.json")
+# The bot's own ledger. Read-only from here: the watchdog writes alerts
+# into it, and without somewhere to show them the only notice of a bot
+# that has gone quiet is a line in a log nobody reads. That is exactly
+# how it went 49 days without placing an order.
+DB_FILE = os.path.join(BASE_DIR, "trading_bot_v8.db")
 
 DASHBOARD_USERNAME = os.environ.get("DASHBOARD_USERNAME", "")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "")
@@ -130,6 +136,30 @@ def api_trades():
 @login_required
 def api_equity():
     return jsonify(_read_jsonl(EQUITY_FILE, limit=3000))
+
+
+@app.route("/api/alerts")
+@login_required
+def api_alerts():
+    """What the watchdog has raised, newest first.
+
+    Read-only and defensive: the table does not exist until the first
+    alert is recorded, and a dashboard that 500s because nothing has gone
+    wrong yet would be its own small joke.
+    """
+    try:
+        conn = sqlite3.connect(f"file:{DB_FILE}?mode=ro", uri=True)
+        rows = conn.execute(
+            "SELECT timestamp, kind, message FROM alerts "
+            "ORDER BY id DESC LIMIT 50"
+        ).fetchall()
+        conn.close()
+    except Exception:
+        return jsonify([])
+
+    return jsonify([
+        {"timestamp": t, "kind": k, "message": m} for t, k, m in rows
+    ])
 
 
 @app.route("/api/kill-switch", methods=["POST"])

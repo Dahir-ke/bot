@@ -494,9 +494,15 @@
       <div class="table-wrap"><table id="signalsTable"><thead><tr><th>Symbol</th><th>State</th><th>Prob</th><th>ATR</th><th>ADX</th><th>RSI</th><th>H1 Trend</th></tr></thead><tbody></tbody></table></div>
       <div class="empty" id="signalsEmpty" style="display:none"><span class="ic">📡</span>No model signals available.</div>
     </div>
+    <div class="panel" id="alertsPanel" style="display:none">
+      <div class="panel-head"><h2><span class="ic">🚨</span> Alerts</h2></div>
+      <div class="subtext" style="margin:-8px 0 12px;">Raised by the watchdog when the bot is running but cannot trade — no usable model, a symbol that can never reach its own threshold, or no order placed in days. Before this existed the bot ran 49 days without placing an order and nothing said so.</div>
+      <div class="table-wrap"><table id="alertsTable"><thead><tr><th>When</th><th>Kind</th><th>What it means</th></tr></thead><tbody></tbody></table></div>
+    </div>
     <div class="panel">
       <div class="panel-head"><h2><span class="ic">🧪</span> Model Quality (Walk-Forward)</h2></div>
-      <div class="subtext" style="margin:-8px 0 12px;">Per-symbol training results from the most recent quality-gate check — why a model is or isn't trusted to trade, independent of the current bar's filters above. A symbol only actually trades if <b>both</b> BUY and SELL pass; a single passing side is marked INACTIVE if its counterpart doesn't.</div>
+      <div class="subtext" style="margin:-8px 0 4px;">Per-symbol training results from the most recent quality-gate check — why a model is or isn't trusted to trade, independent of the current bar's filters above. <b>Each side is judged on its own:</b> a side that passes trades even if its counterpart doesn't, and the symbol is only off when both fail. <b>TRUSTED (OVERRIDE)</b> means the account owner lowered the bar for that pair — it did not clear the standard gate.</div>
+      <div class="subtext" id="modelQualityUpdated" style="margin:0 0 12px; opacity:.7;">refreshed every 4s</div>
       <div class="table-wrap"><table id="modelQualityTable"><thead><tr><th>Symbol</th><th>Side</th><th>Status</th><th>AUC</th><th>Precision</th><th>Signals</th><th>Coverage</th><th>Reason</th><th>Trained At</th></tr></thead><tbody></tbody></table></div>
       <div class="empty" id="modelQualityEmpty" style="display:none"><span class="ic">🧪</span>No model training results yet.</div>
     </div>
@@ -721,14 +727,16 @@ setInterval(() => {
 /* ---------- fetch + render ---------- */
 async function refresh() {
   try {
-    const [status, trades, equity] = await Promise.all([
+    const [status, trades, equity, alerts] = await Promise.all([
       fetch('/api/status').then(r => r.json()),
       fetch('/api/trades').then(r => r.json()),
       fetch('/api/equity').then(r => r.json()),
+      fetch('/api/alerts').then(r => r.json()).catch(() => []),
     ]);
     renderStatus(status);
     renderTrades(trades);
     renderEquity(equity);
+    renderAlerts(alerts);
     renderPerformanceStats(trades, equity);
     renderSparklines(equity);
     renderRiskOfRuin(trades, status && status.max_risk_percent);
@@ -879,32 +887,82 @@ function updateAlertBanner(s) {
   }
 }
 
+function renderAlerts(alerts) {
+  const panel = document.getElementById('alertsPanel');
+  const body = document.querySelector('#alertsTable tbody');
+  if (!panel || !body) return;
+  body.innerHTML = '';
+
+  // Hidden entirely when there is nothing wrong, so its presence on the
+  // page means something rather than becoming furniture.
+  if (!Array.isArray(alerts) || alerts.length === 0) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = '';
+
+  alerts.forEach(a => {
+    const tr = document.createElement('tr');
+    const severe = a.kind === 'NO_MODELS'
+      || a.kind === 'NEVER_TRADED'
+      || a.kind === 'ALL_SYMBOLS_UNREACHABLE';
+    tr.innerHTML = `<td>${a.timestamp ? fmtTime(a.timestamp) : '–'}</td>`
+      + `<td>${pill(a.kind || '?', severe ? 'fail' : 'half')}</td>`
+      + `<td class="muted">${a.message || ''}</td>`;
+    body.appendChild(tr);
+  });
+}
+
 function renderModelQuality(quality) {
   const body = document.querySelector('#modelQualityTable tbody');
   body.innerHTML = '';
   const rows = [];
   Object.keys(quality).sort().forEach(sym => {
+    // A side that passes its gate now trades on its own. The symbol is
+    // only off when BOTH sides fail - before 2026-10-15 one weak side
+    // disabled the whole pair, which is how USDJPYm went dark on
+    // 10-08 and took the account's only working model with it.
     const buy = quality[sym].BUY;
     const sell = quality[sym].SELL;
-    // A symbol only actually trades if BOTH sides pass their quality gate -
-    // load_or_train_models() drops the whole symbol if either side fails,
-    // so a single passing side never means that side is live.
-    const symbolTradable = !!(buy && buy.passed && sell && sell.passed);
+    const anySide = !!((buy && buy.passed) || (sell && sell.passed));
     ['BUY', 'SELL'].forEach(side => {
       const q = quality[sym][side];
-      if (q) rows.push([sym, side, q, symbolTradable]);
+      if (q) rows.push([sym, side, q, anySide]);
     });
   });
   document.getElementById('modelQualityEmpty').style.display = rows.length ? 'none' : 'block';
-  rows.forEach(([sym, side, q, symbolTradable]) => {
+
+  let newest = null;
+  rows.forEach(([sym, side, q]) => {
+    if (q.trained_at && (!newest || q.trained_at > newest)) newest = q.trained_at;
+  });
+  const stamp = document.getElementById('modelQualityUpdated');
+  if (stamp) {
+    stamp.textContent = newest
+      ? 'Last quality check ' + fmtTime(newest) + ' · refreshed every 4s'
+      : 'refreshed every 4s';
+  }
+
+  rows.forEach(([sym, side, q, anySide]) => {
     const tr = document.createElement('tr');
     let statusLabel, statusCls, reasonText;
-    if (q.passed && symbolTradable) {
-      statusLabel = 'TRUSTED'; statusCls = 'pass';
-      reasonText = 'Meets all quality-gate thresholds';
-    } else if (q.passed && !symbolTradable) {
-      statusLabel = 'INACTIVE'; statusCls = 'half';
-      reasonText = `This side passed, but ${sym}'s other side didn't — both must pass for the symbol to trade.`;
+
+    // A row that passed only because the account owner lowered the bar
+    // for it must not read the same as one that cleared the bar on its
+    // own. q.reason carries "RISK OVERRIDE: ..." in that case and was
+    // being thrown away here for every passing row.
+    const overridden = !!(q.reason && /risk override/i.test(q.reason));
+
+    if (q.passed) {
+      statusLabel = overridden ? 'TRUSTED (OVERRIDE)' : 'TRUSTED';
+      statusCls = overridden ? 'half' : 'pass';
+      reasonText = overridden
+        ? q.reason
+        : 'Meets all quality-gate thresholds';
+    } else if (anySide) {
+      statusLabel = 'OFF'; statusCls = 'fail';
+      reasonText = (q.reason || '') +
+        ` — this side is disabled; ${sym} still trades its other side.`;
     } else {
       statusLabel = 'REJECTED'; statusCls = 'fail';
       reasonText = q.reason || '';
