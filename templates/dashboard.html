@@ -437,6 +437,11 @@
 
   <!-- ============ DASHBOARD VIEW ============ -->
   <div class="view active" data-view="dashboard">
+    <div class="panel" id="alertsPanel" style="display:none">
+      <div class="panel-head"><h2><span class="ic">🚨</span> Alerts</h2></div>
+      <div class="subtext" style="margin:-8px 0 12px;">Raised by the watchdog when the bot is running but cannot trade — no usable model, a symbol that can never reach its own threshold, or no order placed in days. Before this existed the bot ran 49 days without placing an order and nothing said so.</div>
+      <div class="table-wrap"><table id="alertsTable"><thead><tr><th>When</th><th>Kind</th><th>What it means</th></tr></thead><tbody></tbody></table></div>
+    </div>
     <div class="grid-2">
       <div class="panel">
         <div class="panel-head"><h2><span class="ic">🛰️</span> Market Panorama</h2><button class="link-btn" data-goto="signals">View all</button></div>
@@ -493,11 +498,6 @@
       <div class="panel-head"><h2><span class="ic">📡</span> Model Signals</h2></div>
       <div class="table-wrap"><table id="signalsTable"><thead><tr><th>Symbol</th><th>State</th><th>Prob</th><th>ATR</th><th>ADX</th><th>RSI</th><th>H1 Trend</th></tr></thead><tbody></tbody></table></div>
       <div class="empty" id="signalsEmpty" style="display:none"><span class="ic">📡</span>No model signals available.</div>
-    </div>
-    <div class="panel" id="alertsPanel" style="display:none">
-      <div class="panel-head"><h2><span class="ic">🚨</span> Alerts</h2></div>
-      <div class="subtext" style="margin:-8px 0 12px;">Raised by the watchdog when the bot is running but cannot trade — no usable model, a symbol that can never reach its own threshold, or no order placed in days. Before this existed the bot ran 49 days without placing an order and nothing said so.</div>
-      <div class="table-wrap"><table id="alertsTable"><thead><tr><th>When</th><th>Kind</th><th>What it means</th></tr></thead><tbody></tbody></table></div>
     </div>
     <div class="panel">
       <div class="panel-head"><h2><span class="ic">🧪</span> Model Quality (Walk-Forward)</h2></div>
