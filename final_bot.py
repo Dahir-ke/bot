@@ -1006,6 +1006,8 @@ ALERT_MIN_READY_SYMBOLS = int(os.environ.get("ALERT_MIN_READY_SYMBOLS", "1"))
 # call the symbol reachable. 0.9 means "it got within 10% of the bar".
 ALERT_REACHABLE_RATIO = float(os.environ.get("ALERT_REACHABLE_RATIO", "0.9"))
 ALERT_LOOKBACK_HOURS = float(os.environ.get("ALERT_LOOKBACK_HOURS", "48"))
+# How long the same alert stays quiet after it has been raised once.
+ALERT_REPEAT_HOURS = float(os.environ.get("ALERT_REPEAT_HOURS", "12"))
 WATCHDOG_INTERVAL_SECONDS = float(
     os.environ.get("WATCHDOG_INTERVAL_SECONDS", "3600")
 )
@@ -1014,13 +1016,12 @@ WATCHDOG_INTERVAL_SECONDS = float(
 def record_alert(kind, message):
     """Log it loudly, keep it, and push it out if a channel is configured.
 
-    The record survives a restart, so the dashboard and any later
-    investigation can see what was wrong and when - the thing that was
-    missing when this had to be reconstructed from the decisions table by
-    hand.
+    Repeats of the same thing are suppressed for ALERT_REPEAT_HOURS. An
+    hourly watchdog left to itself writes the same line twenty-four times
+    a day, and a list that says the same thing over and over is wallpaper
+    - which is the failure this whole mechanism exists to prevent. The
+    condition still has to clear and come back to speak again.
     """
-    logging.error(f"ALERT [{kind}] {message}")
-
     try:
         conn = sqlite3.connect(DB_FILE)
         conn.execute(
@@ -1028,6 +1029,23 @@ def record_alert(kind, message):
             "id INTEGER PRIMARY KEY AUTOINCREMENT, "
             "timestamp TEXT, kind TEXT, message TEXT)"
         )
+
+        cutoff = (
+            datetime.now(timezone.utc)
+            - timedelta(hours=ALERT_REPEAT_HOURS)
+        ).isoformat()
+        recent = conn.execute(
+            "SELECT 1 FROM alerts WHERE kind = ? AND message = ? "
+            "AND timestamp >= ? LIMIT 1",
+            (kind, message, cutoff),
+        ).fetchone()
+
+        if recent:
+            conn.close()
+            logging.info(f"alert [{kind}] still true, already reported")
+            return False
+
+        logging.error(f"ALERT [{kind}] {message}")
         conn.execute(
             "INSERT INTO alerts (timestamp, kind, message) VALUES (?, ?, ?)",
             (datetime.now(timezone.utc).isoformat(), kind, message),
@@ -1036,9 +1054,10 @@ def record_alert(kind, message):
         conn.close()
     except Exception as exc:
         logging.error(f"could not record alert: {exc}")
+        logging.error(f"ALERT [{kind}] {message}")
 
     if not ALERT_WEBHOOK_URL:
-        return
+        return True
 
     # Best effort and never fatal: an alert that cannot be delivered must
     # not take the trading loop down with it.
@@ -1055,6 +1074,8 @@ def record_alert(kind, message):
         urllib.request.urlopen(request, timeout=10).read()
     except Exception as exc:
         logging.error(f"could not deliver alert: {exc}")
+
+    return True
 
 
 def unreachable_symbols(models_dict, lookback_hours=None):

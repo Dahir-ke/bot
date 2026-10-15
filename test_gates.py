@@ -382,3 +382,51 @@ def test_get_h1_trend_reads_a_forty_minute_old_bar(monkeypatch):
         "an hourly bar forty minutes old was treated as stale, so the "
         "trend was reported neutral and every trade would be rejected"
     )
+
+
+def test_the_same_alert_is_not_repeated_every_hour(tmp_path, monkeypatch):
+    """The watchdog runs hourly. Left alone it wrote the same
+    NEVER_TRADED line every hour, and a list that says the same thing
+    over and over is wallpaper - which is the failure this mechanism
+    exists to prevent. Observed on the live dashboard within three hours
+    of shipping it."""
+    path = _ledger(tmp_path, monkeypatch)
+
+    for _ in range(5):
+        bot.run_watchdog({}, started_at=_now())
+
+    conn = sqlite3.connect(path)
+    rows = conn.execute(
+        "SELECT COUNT(*) FROM alerts WHERE kind = 'NO_MODELS'"
+    ).fetchone()[0]
+    conn.close()
+    assert rows == 1, f"the same alert was recorded {rows} times"
+
+
+def test_a_changed_alert_still_speaks(tmp_path, monkeypatch):
+    """Suppression is per message, not per kind - a symbol that gets
+    worse must not be silenced by an earlier, milder version of itself."""
+    path = _ledger(tmp_path, monkeypatch)
+
+    bot.record_alert("SYMBOL_UNREACHABLE", "USDJPYm best=0.355 vs 0.40")
+    bot.record_alert("SYMBOL_UNREACHABLE", "USDJPYm best=0.355 vs 0.40")
+    bot.record_alert("SYMBOL_UNREACHABLE", "EURUSDm best=0.100 vs 0.40")
+
+    conn = sqlite3.connect(path)
+    rows = conn.execute("SELECT message FROM alerts").fetchall()
+    conn.close()
+    assert len(rows) == 2, [r[0] for r in rows]
+
+
+def test_an_alert_speaks_again_once_the_quiet_period_passes(tmp_path, monkeypatch):
+    """Silenced for a while, not forever."""
+    path = _ledger(tmp_path, monkeypatch)
+    monkeypatch.setattr(bot, "ALERT_REPEAT_HOURS", 0.0)
+
+    bot.record_alert("NO_MODELS", "nothing to trade")
+    bot.record_alert("NO_MODELS", "nothing to trade")
+
+    conn = sqlite3.connect(path)
+    count = conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0]
+    conn.close()
+    assert count == 2
