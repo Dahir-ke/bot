@@ -339,10 +339,19 @@ def test_a_genuinely_dead_hourly_feed_is_still_caught():
     assert not bot.is_data_fresh(_frame_aged(400), bot.H1_MAX_DATA_AGE_MINUTES)
 
 
-def test_the_hourly_tolerance_covers_a_whole_bar():
-    """If it ever drops below sixty it reintroduces the bug for part of
-    each hour, which is exactly how this went unnoticed."""
-    assert bot.H1_MAX_DATA_AGE_MINUTES > 60
+def test_the_hourly_tolerance_covers_two_whole_bars():
+    """Bars carry the time they OPENED. A bar labelled T closes at T+60,
+    so the newest closed bar's label can be just under 120 minutes behind
+    now. A tolerance under that reintroduces the bug for part of every
+    hour - the first attempt at this fix used 70 and was still too small,
+    which only showed up by measuring the live feed."""
+    assert bot.H1_MAX_DATA_AGE_MINUTES >= 120
+
+
+def test_an_hourly_bar_near_two_hours_old_by_label_is_still_current():
+    """104 minutes was the real measurement that exposed the 70."""
+    assert bot.is_data_fresh(_frame_aged(104), bot.H1_MAX_DATA_AGE_MINUTES)
+    assert bot.is_data_fresh(_frame_aged(119), bot.H1_MAX_DATA_AGE_MINUTES)
 
 
 def test_get_h1_trend_reads_a_forty_minute_old_bar(monkeypatch):

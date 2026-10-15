@@ -311,10 +311,19 @@ REQUIRE_H1_ALIGNMENT = os.environ.get(
 ).strip().lower() not in ("false", "0", "no")
 
 MAX_DATA_AGE_MINUTES = 10
-# A closed H1 bar is up to an hour old the moment it closes, so it needs
-# the bar's own interval on top of the same grace period.
+# Bars are stamped with the time they OPENED, which is what makes the
+# arithmetic here easy to get wrong - 70 was the first answer, and it was
+# still too small.
+#
+# A bar labelled T covers [T, T+60) and does not close until T+60. So the
+# newest CLOSED bar at time t is the hour boundary at or before t-60, and
+# its label can be just under 120 minutes behind t. Measured live at
+# 08:44 UTC: newest closed H1 bar labelled 07:00, age 104 minutes - it
+# had closed 44 minutes earlier and was entirely current.
+#
+# Two bar-widths plus the same grace the M5 path gets.
 H1_MAX_DATA_AGE_MINUTES = float(
-    os.environ.get("H1_MAX_DATA_AGE_MINUTES", "70")
+    os.environ.get("H1_MAX_DATA_AGE_MINUTES", "130")
 )
 
 LOOP_INTERVAL_SECONDS = 60
