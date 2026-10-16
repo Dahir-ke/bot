@@ -1258,6 +1258,97 @@ def run_watchdog(models_dict, started_at):
 
 
 # ============================================================
+# ORDER CIRCUIT BREAKER
+# ============================================================
+#
+# Exness restricted account 134084924 for "unusual EA activity that may
+# have generated a high volume of requests to our servers", and they were
+# right to. This bot sent a rejected order every five minutes, on two
+# symbols, for weeks - each one refused with the same retcode, each one
+# retried as if the answer might be different. 59 in the final few hours
+# alone.
+#
+# A broker saying "no" for a reason that cannot change on its own - a
+# permission, an unknown symbol, a malformed request - is not a transient
+# error, and asking again immediately is how an account gets flagged. A
+# refusal now buys silence on that symbol, and each repeat buys more.
+
+# Refusals that will not fix themselves by trying again.
+PERMANENT_REJECT_CODES = {
+    10026,  # AutoTrading disabled by server
+    10027,  # AutoTrading disabled by client
+    10017,  # trade disabled
+    10018,  # market closed
+    10014,  # invalid volume
+    10015,  # invalid price
+    10016,  # invalid stops
+}
+
+ORDER_BACKOFF_BASE_MINUTES = float(
+    os.environ.get("ORDER_BACKOFF_BASE_MINUTES", "15")
+)
+ORDER_BACKOFF_MAX_MINUTES = float(
+    os.environ.get("ORDER_BACKOFF_MAX_MINUTES", "240")
+)
+
+# symbol -> {"until": datetime, "strikes": int, "retcode": int}
+_order_backoff = {}
+
+
+def order_backoff_remaining(symbol):
+    """Minutes left before this symbol may send another order, or 0."""
+    entry = _order_backoff.get(symbol)
+    if not entry:
+        return 0.0
+    left = (entry["until"] - datetime.now(timezone.utc)).total_seconds() / 60
+    if left <= 0:
+        _order_backoff.pop(symbol, None)
+        return 0.0
+    return left
+
+
+def note_order_rejected(symbol, retcode, comment):
+    """Hold off on this symbol, for longer each time it happens.
+
+    Only for refusals that repeating cannot cure. A requote or a price
+    change is genuinely worth retrying and is left alone.
+    """
+    if retcode not in PERMANENT_REJECT_CODES:
+        return
+
+    entry = _order_backoff.get(symbol) or {"strikes": 0}
+    entry["strikes"] += 1
+    entry["retcode"] = retcode
+
+    minutes = min(
+        ORDER_BACKOFF_BASE_MINUTES * (2 ** (entry["strikes"] - 1)),
+        ORDER_BACKOFF_MAX_MINUTES,
+    )
+    entry["until"] = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+    _order_backoff[symbol] = entry
+
+    logging.error(
+        f"{symbol}: order refused ({retcode} {comment}) - "
+        f"no further orders on this symbol for {minutes:.0f} minutes "
+        f"(strike {entry['strikes']})"
+    )
+
+    # Worth telling somebody: a refusal the bot cannot argue with is
+    # exactly the condition that went unnoticed for 49 days.
+    if entry["strikes"] in (1, 3):
+        record_alert(
+            "ORDER_REFUSED",
+            f"{symbol}: broker refused the order ({retcode} {comment}). "
+            f"Holding off {minutes:.0f} minutes.",
+        )
+
+
+def note_order_accepted(symbol):
+    """A fill clears the symbol's record - the problem is over."""
+    _order_backoff.pop(symbol, None)
+
+
+# ============================================================
 # KILL SWITCH
 # ============================================================
 
@@ -4518,6 +4609,17 @@ def execute_trade(
     prob,
 ):
 
+    # Still serving a refusal on this symbol. Not sending is the whole
+    # point - the broker already said no for a reason that asking again
+    # cannot change, and asking again is what got the account flagged.
+    waiting = order_backoff_remaining(symbol)
+    if waiting:
+        logging.info(
+            f"{symbol}: holding off, {waiting:.0f} more minutes before "
+            f"another order is sent"
+        )
+        return False
+
     request = {
         "action": TRADE_ACTION_DEAL,
         "symbol": symbol,
@@ -4669,7 +4771,13 @@ def execute_trade(
                 retcode=retcode,
             )
 
+        note_order_rejected(symbol, retcode, comment)
+
         return False
+
+    # Accepted - whatever was wrong is over, so clear the symbol's record
+    # rather than leaving it one strike closer to a long hold.
+    note_order_accepted(symbol)
 
     position_ticket = (
         get_position_ticket_after_order(

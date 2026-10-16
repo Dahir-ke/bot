@@ -55,3 +55,15 @@ os.environ.setdefault(
     "RISK_OVERRIDE_PAIRS",
     "USDJPYm:BUY,USDJPYm:SELL,EURUSDm:BUY,EURUSDm:SELL",
 )
+
+# The gate values are pinned too, and deliberately NOT read from the
+# repo's .env. That file tracks whatever the live deployment is tuned to
+# this week - it was synced from the VPS mid-session and silently moved
+# the confidence threshold from 0.40 to 0.05, which made a watchdog test
+# pass its own data as "reachable" and fail. A test that changes meaning
+# when someone edits a deployment setting is not a test.
+os.environ["RISK_OVERRIDE_LIVE_CONFIDENCE"] = "0.40"
+os.environ["RISK_OVERRIDE_MIN_ADX"] = "12.0"
+os.environ["RISK_OVERRIDE_MIN_PROB_GAP"] = "0.04"
+os.environ["RISK_OVERRIDE_REQUIRE_H1_ALIGNMENT"] = "false"
+os.environ["RISK_OVERRIDE_APPLY_RSI_EXTREMES"] = "false"

@@ -155,7 +155,14 @@ def _ledger(tmp_path, monkeypatch, decisions=(), orders=()):
         "CREATE TABLE decisions (id INTEGER PRIMARY KEY, timestamp TEXT, "
         "symbol TEXT, buy_prob REAL, sell_prob REAL)"
     )
-    conn.execute("CREATE TABLE orders (id INTEGER PRIMARY KEY, timestamp TEXT)")
+    # Mirrors the real schema - a thinner one let log_order blow up
+    # inside a test that was meant to be about something else.
+    conn.execute(
+        "CREATE TABLE orders (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "timestamp TEXT, symbol TEXT, side TEXT, volume REAL, price REAL, "
+        "sl REAL, tp REAL, retcode INTEGER, order_ticket INTEGER, "
+        "deal_ticket INTEGER, position_ticket INTEGER, message TEXT)"
+    )
     conn.executemany(
         "INSERT INTO decisions (timestamp, symbol, buy_prob, sell_prob) "
         "VALUES (?, ?, ?, ?)", decisions,
@@ -463,3 +470,127 @@ def test_a_normal_symbol_still_needs_the_wider_gap():
     assert "XAUUSDm" not in bot.RISK_OVERRIDE_SYMBOLS
     name, _, _ = bot.generate_signal("XAUUSDm", buy_prob=0.90, sell_prob=0.85)
     assert name is None
+
+
+# ---------- the circuit breaker
+#
+# Exness restricted the live account for "unusual EA activity that may
+# have generated a high volume of requests". The bot had been sending a
+# rejected order every five minutes, on two symbols, for weeks.
+
+
+def _clear_backoff():
+    bot._order_backoff.clear()
+
+
+def test_a_refusal_stops_the_next_order(tmp_path, monkeypatch):
+    _clear_backoff()
+    _ledger(tmp_path, monkeypatch)
+    bot.note_order_rejected("EURUSDm", 10026, "AutoTrading disabled by server")
+    assert bot.order_backoff_remaining("EURUSDm") > 0, (
+        "the bot would ask again immediately - this is what got the "
+        "account flagged"
+    )
+
+
+def test_each_repeat_buys_a_longer_silence(tmp_path, monkeypatch):
+    _clear_backoff()
+    _ledger(tmp_path, monkeypatch)
+    waits = []
+    for _ in range(3):
+        bot.note_order_rejected("EURUSDm", 10026, "disabled")
+        waits.append(bot.order_backoff_remaining("EURUSDm"))
+    assert waits[1] > waits[0] and waits[2] > waits[1], waits
+
+
+def test_the_hold_is_capped(tmp_path, monkeypatch):
+    """Backing off forever is its own failure - it must come back and try."""
+    _clear_backoff()
+    _ledger(tmp_path, monkeypatch)
+    for _ in range(20):
+        bot.note_order_rejected("EURUSDm", 10026, "disabled")
+    assert bot.order_backoff_remaining("EURUSDm") <= bot.ORDER_BACKOFF_MAX_MINUTES + 1
+
+
+def test_a_retryable_refusal_is_not_held_against_the_symbol(tmp_path, monkeypatch):
+    """A requote is worth trying again straight away. Only refusals that
+    repeating cannot cure buy silence."""
+    _clear_backoff()
+    _ledger(tmp_path, monkeypatch)
+    bot.note_order_rejected("EURUSDm", 10004, "requote")
+    assert bot.order_backoff_remaining("EURUSDm") == 0
+
+
+def test_a_fill_clears_the_record(tmp_path, monkeypatch):
+    _clear_backoff()
+    _ledger(tmp_path, monkeypatch)
+    bot.note_order_rejected("EURUSDm", 10026, "disabled")
+    assert bot.order_backoff_remaining("EURUSDm") > 0
+    bot.note_order_accepted("EURUSDm")
+    assert bot.order_backoff_remaining("EURUSDm") == 0
+
+
+def test_one_symbol_being_held_does_not_silence_another(tmp_path, monkeypatch):
+    _clear_backoff()
+    _ledger(tmp_path, monkeypatch)
+    bot.note_order_rejected("EURUSDm", 10026, "disabled")
+    assert bot.order_backoff_remaining("USDJPYm") == 0
+
+
+def test_a_refusal_raises_an_alert(tmp_path, monkeypatch):
+    _clear_backoff()
+    path = _ledger(tmp_path, monkeypatch)
+    bot.note_order_rejected("EURUSDm", 10026, "AutoTrading disabled by server")
+    conn = sqlite3.connect(path)
+    kinds = [k for (k,) in conn.execute("SELECT kind FROM alerts")]
+    conn.close()
+    assert "ORDER_REFUSED" in kinds
+
+
+def test_execute_trade_does_not_contact_the_broker_while_held(tmp_path, monkeypatch):
+    """The test that actually matters.
+
+    An earlier version of this file checked only the bookkeeping, and a
+    mutant that removed the block from execute_trade passed every one of
+    them. What has to be true is that no request reaches the broker -
+    that is the whole reason the account was restricted.
+    """
+    _clear_backoff()
+    _ledger(tmp_path, monkeypatch)
+
+    sent = []
+    monkeypatch.setattr(bot.mt5, "order_send", lambda req: sent.append(req))
+
+    bot.note_order_rejected("EURUSDm", 10026, "AutoTrading disabled by server")
+    assert bot.order_backoff_remaining("EURUSDm") > 0
+
+    params = {
+        "lot": 0.01, "entry": 1.1212, "sl": 1.1200, "tp": 1.1230,
+        "order_type": 0, "filling": 0, "initial_risk": 1.0,
+    }
+    result = bot.execute_trade(params, "EURUSDm", "BUY", 0.9)
+
+    assert sent == [], f"an order was sent while the symbol was held: {sent}"
+    assert result is False
+
+
+def test_execute_trade_does_reach_the_broker_once_the_hold_expires(tmp_path, monkeypatch):
+    """And it must come back - a breaker that never closes is just an
+    outage with extra steps."""
+    _clear_backoff()
+    _ledger(tmp_path, monkeypatch)
+
+    sent = []
+
+    class Rejected:
+        retcode = 10004
+        comment = "requote"
+    monkeypatch.setattr(bot.mt5, "order_send",
+                        lambda req: (sent.append(req), Rejected())[1])
+
+    params = {
+        "lot": 0.01, "entry": 1.1212, "sl": 1.1200, "tp": 1.1230,
+        "order_type": 0, "filling": 0, "initial_risk": 1.0,
+    }
+    bot.execute_trade(params, "EURUSDm", "BUY", 0.9)
+    assert len(sent) == 1, "nothing was sent when the symbol was clear"
